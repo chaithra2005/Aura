@@ -7,6 +7,7 @@ import Footer from './components/Footer';
 import AddCamera from './components/AddCamera';
 import CameraDetail from './pages/CameraDetail';
 import './App.css';
+import Home from './pages/Home.jsx'
 
 function App() {
   const [refreshCameras, setRefreshCameras] = useState(false);
@@ -16,19 +17,34 @@ function App() {
   };
 
   return (
-    <Router>
+   <Router>
       <div className="app">
         <Navbar />
+
         <Routes>
-          <Route path="/" element={
-            <>
-              <Hero />
-              <FeaturedCameras refresh={refreshCameras} />
-            </>
-          } />
-          <Route path="/add-camera" element={<AddCamera onCameraAdded={handleCameraAdded} />} />
-          <Route path="/camera/:id" element={<CameraDetail />} />
+          <Route
+            path="/"
+            element={
+              <>
+                <Hero />
+                <Home />
+              </>
+            }
+          />
+          <Route
+            path="/featured"
+            element={<FeaturedCameras refresh={refreshCameras} />}
+          />
+          <Route
+            path="/add-camera"
+            element={<AddCamera onCameraAdded={handleCameraAdded} />}
+          />
+          <Route
+            path="/camera/:id"
+            element={<CameraDetail />}
+          />
         </Routes>
+
         <Footer />
       </div>
     </Router>

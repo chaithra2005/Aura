@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 const navLinks = [
   { label: 'Home', to: '/' },
-  { label: 'Cameras', to: '/' },
+  { label: 'Cameras', to: '/featured' },
   { label: 'About', to: '/' },
   { label: 'Contact', to: '/' },
   { label: 'Add Camera', to: '/add-camera' },
