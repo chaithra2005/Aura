@@ -1,0 +1,39 @@
+/* AddCamera.css */
+
+.rich-text-editor {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-height: 150px;
+  outline: none;
+  line-height: 1.5;
+}
+
+.rich-text-editor:focus-within {
+  border-color: #333;
+}
+
+.rich-text-editor .ProseMirror p {
+  margin: 0 0 1rem 0;
+}
+
+.rich-text-editor .ProseMirror h1,
+.rich-text-editor .ProseMirror h2,
+.rich-text-editor .ProseMirror h3 {
+  margin: 1.5rem 0 1rem 0;
+  font-weight: 700;
+}
+
+.rich-text-editor .ProseMirror ul,
+.rich-text-editor .ProseMirror ol {
+  padding-left: 1.5rem;
+  margin: 1rem 0;
+}
+
+.rich-text-editor .ProseMirror blockquote {
+  border-left: 3px solid #ccc;
+  margin-left: 0;
+  padding-left: 1rem;
+  font-style: italic;
+  color: #666;
+} 

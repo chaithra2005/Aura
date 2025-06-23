@@ -5,6 +5,7 @@ import Hero from './components/Hero';
 import FeaturedCameras from './components/FeaturedCameras';
 import Footer from './components/Footer';
 import AddCamera from './components/AddCamera';
+import CameraDetail from './pages/CameraDetail';
 import './App.css';
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
             </>
           } />
           <Route path="/add-camera" element={<AddCamera onCameraAdded={handleCameraAdded} />} />
+          <Route path="/camera/:id" element={<CameraDetail />} />
         </Routes>
         <Footer />
       </div>
