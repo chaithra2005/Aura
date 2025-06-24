@@ -8,6 +8,7 @@ import AddCamera from './components/AddCamera';
 import CameraDetail from './pages/CameraDetail';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
+import Home from './pages/Home';
 import { auth, onAuthStateChanged } from './firebase';
 import './App.css';
 
@@ -42,7 +43,8 @@ function App() {
           <Route path="/" element={
             <>
               <Hero />
-              <FeaturedCameras refresh={refreshCameras} user={user} />
+              <Home></Home>
+              {/* <FeaturedCameras refresh={refreshCameras} user={user} /> */}
             </>
           } />
           <Route path="/featured" element={<FeaturedCameras refresh={refreshCameras} user={user} />} />
