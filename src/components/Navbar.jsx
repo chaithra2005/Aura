@@ -1,7 +1,8 @@
 import { AppBar, Toolbar, Typography, Button, Box, Container, IconButton, Drawer, List, ListItem, ListItemText } from '@mui/material';
 import { Menu, X } from 'react-feather';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { auth } from '../firebase';
 
 const navLinks = [
   { label: 'Home', to: '/' },
@@ -11,12 +12,18 @@ const navLinks = [
   { label: 'Add Camera', to: '/add-camera' },
 ];
 
-const Navbar = () => {
+const Navbar = ({ user }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const handleDrawerToggle = () => {
     setDrawerOpen((prev) => !prev);
+  };
+
+  const handleLogout = async () => {
+    await auth.signOut();
+    navigate('/');
   };
 
   return (
@@ -54,6 +61,20 @@ const Navbar = () => {
                 {link.label}
               </Typography>
             ))}
+            {user ? (
+              <Button color="inherit" onClick={handleLogout} sx={{ fontWeight: 800, ml: 2 }}>
+                Logout
+              </Button>
+            ) : (
+              <>
+                <Button component={RouterLink} to="/login" color="inherit" sx={{ fontWeight: 800, ml: 2 }}>
+                  Login
+                </Button>
+                <Button component={RouterLink} to="/signup" color="inherit" sx={{ fontWeight: 800, ml: 1 }}>
+                  Sign Up
+                </Button>
+              </>
+            )}
           </Box>
           {/* Hamburger Icon for Mobile */}
           <IconButton
@@ -104,6 +125,20 @@ const Navbar = () => {
               <ListItemText primary={link.label} primaryTypographyProps={{ fontWeight: 800 }} />
             </ListItem>
           ))}
+          {user ? (
+            <ListItem button onClick={() => { handleDrawerToggle(); handleLogout(); }}>
+              <ListItemText primary="Logout" primaryTypographyProps={{ fontWeight: 800 }} />
+            </ListItem>
+          ) : (
+            <>
+              <ListItem button component={RouterLink} to="/login" onClick={handleDrawerToggle}>
+                <ListItemText primary="Login" primaryTypographyProps={{ fontWeight: 800 }} />
+              </ListItem>
+              <ListItem button component={RouterLink} to="/signup" onClick={handleDrawerToggle}>
+                <ListItemText primary="Sign Up" primaryTypographyProps={{ fontWeight: 800 }} />
+              </ListItem>
+            </>
+          )}
         </List>
       </Drawer>
     </AppBar>

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { Container, Typography, Grid, Card, CardMedia, CardContent, CardActions, Button, Box, CircularProgress, Chip, Paper } from '@mui/material';
 
-const FeaturedCameras = ({ refresh }) => {
+const FeaturedCameras = ({ refresh, user }) => {
   const [cameras, setCameras] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCameras = async () => {
@@ -52,8 +53,6 @@ const FeaturedCameras = ({ refresh }) => {
                 {cameras.map((camera) => (
                   <Grid item key={camera.id} xs={12} sm={6} md={4} display="flex">
                     <Card
-                      component={Link}
-                      to={`/camera/${camera.id}`}
                       className="product-card"
                       sx={{
                         display: 'flex',
@@ -105,11 +104,16 @@ const FeaturedCameras = ({ refresh }) => {
                             }}
                           >
                             <Button
-                              component={Link}
-                              to={`/camera/${camera.id}`}
                               size="medium"
                               className="dark-action-btn"
                               sx={{ flex: 1, minHeight: 44, fontWeight: 600, width: '100%' }}
+                              onClick={() => {
+                                if (!user) {
+                                  navigate('/login');
+                                } else {
+                                  navigate(`/camera/${camera.id}`);
+                                }
+                              }}
                             >
                               View Details
                             </Button>
@@ -117,6 +121,13 @@ const FeaturedCameras = ({ refresh }) => {
                               size="medium"
                               className="dark-action-btn"
                               sx={{ flex: 1, minHeight: 44, fontWeight: 600, width: '100%' }}
+                              onClick={() => {
+                                if (!user) {
+                                  navigate('/login');
+                                } else {
+                                  // Add Rent Now logic here for logged in users
+                                }
+                              }}
                             >
                               Rent Now
                             </Button>
