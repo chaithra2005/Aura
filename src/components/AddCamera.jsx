@@ -7,7 +7,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { useDropzone } from 'react-dropzone';
 import {
   Box, Button, TextField, Typography, Paper, CircularProgress,
-  Accordion, AccordionSummary, AccordionDetails, IconButton, Grid
+  Accordion, AccordionSummary, AccordionDetails, IconButton, Grid, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
@@ -87,10 +87,12 @@ const ImageUploader = ({ files, onFilesChange }) => {
 
 const AddCamera = ({ onCameraAdded }) => {
   const [name, setName] = useState('');
+  const [company, setCompany] = useState('');
   const [price, setPrice] = useState(0);
   const [description, setDescription] = useState('');
   const [files, setFiles] = useState([]);
   const [specs, setSpecs] = useState([{ key: '', value: '' }]);
+  const [accessories, setAccessories] = useState([{ name: '', price: '' }]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -109,10 +111,24 @@ const AddCamera = ({ onCameraAdded }) => {
     setSpecs(newSpecs);
   };
 
+  const handleAccessoryChange = (index, field, value) => {
+    const newAccessories = [...accessories];
+    newAccessories[index][field] = value;
+    setAccessories(newAccessories);
+  };
+
+  const addAccessoryField = () => {
+    setAccessories([...accessories, { name: '', price: '' }]);
+  };
+
+  const removeAccessoryField = (index) => {
+    setAccessories(accessories.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!name || !price || files.length === 0) {
+    if (!name || !price || !company || files.length === 0) {
       setError('Please fill all required fields and upload at least one image.');
       return;
     }
@@ -147,6 +163,8 @@ const AddCamera = ({ onCameraAdded }) => {
         description,
         imageUrls,
         specs: specsObject,
+        accessories,
+        company,
         createdAt: Timestamp.now(),
       });
 
@@ -155,6 +173,7 @@ const AddCamera = ({ onCameraAdded }) => {
       setDescription('');
       setFiles([]);
       setSpecs([{ key: '', value: '' }]);
+      setAccessories([{ name: '', price: '' }]);
       if (onCameraAdded) onCameraAdded();
 
     } catch (err) {
@@ -176,6 +195,20 @@ const AddCamera = ({ onCameraAdded }) => {
           onChange={(e) => setName(e.target.value)}
           required
         />
+        <FormControl fullWidth required>
+          <InputLabel id="company-select-label">Company</InputLabel>
+          <Select
+            labelId="company-select-label"
+            id="company-select"
+            value={company}
+            label="Company"
+            onChange={(e) => setCompany(e.target.value)}
+          >
+            <MenuItem value="Nikon">Nikon</MenuItem>
+            <MenuItem value="Canon">Canon</MenuItem>
+            <MenuItem value="Sony">Sony</MenuItem>
+          </Select>
+        </FormControl>
         <TextField
           label="Daily Rate ($)"
           type="number"
@@ -212,6 +245,37 @@ const AddCamera = ({ onCameraAdded }) => {
             ))}
             <Button startIcon={<AddIcon />} onClick={addSpecField}>
               Add Spec
+            </Button>
+          </AccordionDetails>
+        </Accordion>
+
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6">Accessories</Typography>
+          </AccordionSummary>
+          <AccordionDetails sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {accessories.map((accessory, index) => (
+              <Box key={index} sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                <TextField
+                  label="Accessory Name"
+                  value={accessory.name}
+                  onChange={e => handleAccessoryChange(index, 'name', e.target.value)}
+                  sx={{ flex: 2 }}
+                />
+                <TextField
+                  label="Price ($)"
+                  type="number"
+                  value={accessory.price}
+                  onChange={e => handleAccessoryChange(index, 'price', e.target.value)}
+                  sx={{ flex: 1 }}
+                />
+                <IconButton onClick={() => removeAccessoryField(index)} disabled={accessories.length === 1}>
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+            ))}
+            <Button startIcon={<AddIcon />} onClick={addAccessoryField} sx={{ mt: 1, width: 'fit-content' }}>
+              Add Accessory
             </Button>
           </AccordionDetails>
         </Accordion>

@@ -1,24 +1,113 @@
-import { AppBar, Toolbar, Typography, Button, Box, Container, IconButton, Drawer, List, ListItem, ListItemText } from '@mui/material';
-import { Menu, X } from 'react-feather';
+import { AppBar, Toolbar, Typography, Button, Box, Container, IconButton, Drawer, List, ListItem, ListItemText, Menu, MenuItem, InputBase, Paper } from '@mui/material';
+import { Menu as MenuIcon, X, Search } from 'react-feather';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
-import { auth } from '../firebase';
+import { useState, useEffect } from 'react';
+import { auth, db } from '../firebase';
+import { styled, alpha } from '@mui/material/styles';
+import { collection, getDocs } from 'firebase/firestore';
 
 const navLinks = [
   { label: 'Home', to: '/' },
-  { label: 'Cameras', to: '/featured' },
-  { label: 'About', to: '/' },
-  { label: 'Contact', to: '/' },
-  { label: 'Add Camera', to: '/add-camera' },
 ];
+
+const ADMIN_EMAILS = [
+  'deekshithsk24@gmail.com', // Replace with your admin email(s)
+];
+
+const SearchBar = styled('div')(({ theme }) => ({
+  position: 'relative',
+  borderRadius: theme.shape.borderRadius,
+  backgroundColor: alpha(theme.palette.common.black, 0.05),
+  '&:hover': {
+    backgroundColor: alpha(theme.palette.common.black, 0.1),
+  },
+  marginRight: theme.spacing(2),
+  marginLeft: theme.spacing(2),
+  width: '100%',
+}));
+
+const SearchIconWrapper = styled('div')(({ theme }) => ({
+  padding: theme.spacing(0, 2),
+  height: '100%',
+  position: 'absolute',
+  pointerEvents: 'none',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+}));
+
+const StyledInputBase = styled(InputBase)(({ theme }) => ({
+  color: 'inherit',
+  width: '100%',
+  '& .MuiInputBase-input': {
+    padding: theme.spacing(1, 1, 1, 0),
+    paddingLeft: `calc(1em + ${theme.spacing(4)})`,
+    transition: theme.transitions.create('width'),
+    width: '100%',
+    [theme.breakpoints.up('md')]: {
+      width: '20ch',
+    },
+  },
+}));
 
 const Navbar = ({ user }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [loadingSearch, setLoadingSearch] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setSearchResults([]);
+      return;
+    }
+
+    const fetchAndSearch = async () => {
+      setLoadingSearch(true);
+      const collections = {
+        cameras: 'camera',
+        freelancers: 'freelancer',
+        accessories: 'accessory',
+      };
+      const allResults = [];
+
+      for (const colName in collections) {
+        try {
+          const querySnapshot = await getDocs(collection(db, colName));
+          querySnapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.name && data.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+              allResults.push({ id: doc.id, type: collections[colName], ...data });
+            }
+          });
+        } catch (error) {
+          console.error(`Error fetching from ${colName}:`, error);
+        }
+      }
+      setSearchResults(allResults);
+      setLoadingSearch(false);
+    };
+
+    const debounceTimer = setTimeout(() => {
+      fetchAndSearch();
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
+
   const handleDrawerToggle = () => {
     setDrawerOpen((prev) => !prev);
+  };
+
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
   };
 
   const handleLogout = async () => {
@@ -48,8 +137,54 @@ const Navbar = ({ user }) => {
               Chaithra
             </Typography>
           </Box>
-          {/* Desktop Nav */}
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 2 }}>
+          
+          {/* Elongated Search Bar */}
+          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, justifyContent: 'center', px: 2 }}>
+            <SearchBar sx={{ width: '100%' }}>
+              <SearchIconWrapper>
+                <Search />
+              </SearchIconWrapper>
+              <StyledInputBase
+                placeholder="Search…"
+                inputProps={{ 'aria-label': 'search' }}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+               {searchResults.length > 0 && (
+                <Paper sx={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1200 }}>
+                  <List>
+                    {searchResults.map((result) => (
+                      <ListItem
+                        button
+                        key={`${result.type}-${result.id}`}
+                        onClick={() => {
+                          let path = '/';
+                          switch (result.type) {
+                            case 'camera':
+                              path = `/camera/${result.id}`;
+                              break;
+                            case 'freelancer':
+                              path = `/freelancers/${result.id}`;
+                              break;
+                            case 'accessory':
+                              path = `/accessories/${result.id}`;
+                              break;
+                          }
+                          navigate(path);
+                          setSearchQuery('');
+                        }}
+                      >
+                        <ListItemText primary={result.name} secondary={result.type} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Paper>
+              )}
+            </SearchBar>
+          </Box>
+
+          {/* Desktop Nav links */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 2, flexShrink: 0 }}>
             {navLinks.map((link) => (
               <Typography
                 key={link.label}
@@ -61,6 +196,40 @@ const Navbar = ({ user }) => {
                 {link.label}
               </Typography>
             ))}
+            {user && (
+              <>
+                <Button
+                  aria-controls="add-service-menu"
+                  aria-haspopup="true"
+                  onClick={handleMenuOpen}
+                  className={`navbar-link${location.pathname.startsWith('/add-') ? ' active' : ''}`}
+                  sx={{ fontWeight: 800, fontSize: '1rem', color: 'inherit', textTransform: 'none' }}
+                >
+                  Add Service
+                </Button>
+                <Menu
+                  id="add-service-menu"
+                  anchorEl={anchorEl}
+                  keepMounted
+                  open={Boolean(anchorEl)}
+                  onClose={handleMenuClose}
+                >
+                  <MenuItem component={RouterLink} to="/add-camera" onClick={handleMenuClose}>Add Camera</MenuItem>
+                  <MenuItem component={RouterLink} to="/add-accessory" onClick={handleMenuClose}>Add Accessory</MenuItem>
+                  <MenuItem component={RouterLink} to="/add-freelancer" onClick={handleMenuClose}>Add Freelancer</MenuItem>
+                </Menu>
+              </>
+            )}
+            {user && ADMIN_EMAILS.includes(user.email) && (
+              <Typography
+                component={RouterLink}
+                to="/admin"
+                className={`navbar-link${location.pathname === '/admin' ? ' active' : ''}`}
+                sx={{ fontWeight: 800, fontSize: '1rem' }}
+              >
+                Admin
+              </Typography>
+            )}
             {user ? (
               <Button color="inherit" onClick={handleLogout} sx={{ fontWeight: 800, ml: 2 }}>
                 Logout
@@ -84,7 +253,7 @@ const Navbar = ({ user }) => {
             onClick={handleDrawerToggle}
             sx={{ display: { xs: 'flex', md: 'none' }, ml: 1 }}
           >
-            <Menu size={28} color="#FF6B6B" />
+            <MenuIcon size={28} color="#FF6B6B" />
           </IconButton>
         </Toolbar>
       </Container>
@@ -125,6 +294,27 @@ const Navbar = ({ user }) => {
               <ListItemText primary={link.label} primaryTypographyProps={{ fontWeight: 800 }} />
             </ListItem>
           ))}
+          {user && (
+            <>
+              <ListItem button onClick={handleMenuOpen}>
+                <ListItemText primary="Add Service" primaryTypographyProps={{ fontWeight: 800 }} />
+              </ListItem>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
+              >
+                <MenuItem component={RouterLink} to="/add-camera" onClick={() => { handleDrawerToggle(); handleMenuClose(); }}>Add Camera</MenuItem>
+                <MenuItem component={RouterLink} to="/add-accessory" onClick={() => { handleDrawerToggle(); handleMenuClose(); }}>Add Accessory</MenuItem>
+                <MenuItem component={RouterLink} to="/add-freelancer" onClick={() => { handleDrawerToggle(); handleMenuClose(); }}>Add Freelancer</MenuItem>
+              </Menu>
+            </>
+          )}
+          {user && ADMIN_EMAILS.includes(user.email) && (
+            <ListItem button component={RouterLink} to="/admin" onClick={handleDrawerToggle}>
+              <ListItemText primary="Admin" primaryTypographyProps={{ fontWeight: 800 }} />
+            </ListItem>
+          )}
           {user ? (
             <ListItem button onClick={() => { handleDrawerToggle(); handleLogout(); }}>
               <ListItemText primary="Logout" primaryTypographyProps={{ fontWeight: 800 }} />

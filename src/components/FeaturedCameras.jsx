@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
-import { Container, Typography, Grid, Card, CardMedia, CardContent, CardActions, Button, Box, CircularProgress, Chip, Paper } from '@mui/material';
+import { Container, Typography, Grid, Card, CardMedia, CardContent, CardActions, Button, Box, CircularProgress, Chip, Paper, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 
 const FeaturedCameras = ({ refresh, user }) => {
   const [cameras, setCameras] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCompany, setSelectedCompany] = useState('All');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,6 +25,12 @@ const FeaturedCameras = ({ refresh, user }) => {
     };
     fetchCameras();
   }, [refresh]);
+
+  const filteredCameras = selectedCompany === 'All' 
+    ? cameras 
+    : cameras.filter(camera => camera.company === selectedCompany);
+
+  const companies = ['All', 'Nikon', 'Canon', 'Sony'];
 
   return (
     <Container className="product-grid-container" sx={{ py: 8 }} maxWidth="lg">
@@ -44,22 +51,39 @@ const FeaturedCameras = ({ refresh, user }) => {
             <Typography variant="h6" align="center" color="text.secondary" paragraph>
               Choose from our selection of high-quality cameras for your next project
             </Typography>
+
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+              <FormControl sx={{ minWidth: 240 }}>
+                <InputLabel id="company-filter-label">Filter by Company</InputLabel>
+                <Select
+                  labelId="company-filter-label"
+                  value={selectedCompany}
+                  label="Filter by Company"
+                  onChange={(e) => setSelectedCompany(e.target.value)}
+                >
+                  {companies.map((company) => (
+                    <MenuItem key={company} value={company}>
+                      {company}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
             {loading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
                 <CircularProgress />
               </Box>
             ) : (
               <Grid container spacing={4} sx={{ mt: 2 }}>
-                {cameras.map((camera) => (
+                {filteredCameras.map((camera) => (
                   <Grid item key={camera.id} xs={12} sm={6} md={4} display="flex">
                     <Card
                       className="product-card"
                       sx={{
                         display: 'flex',
                         flexDirection: 'column',
-                        justifyContent: 'flex-start',
-                        height: 'auto',
-                        minHeight: { xs: 380, md: 440 },
+                        height: 450,
                         position: 'relative',
                         overflow: 'hidden',
                         p: { xs: 2, md: 3 },
@@ -70,7 +94,13 @@ const FeaturedCameras = ({ refresh, user }) => {
                     >
                       <div className="card-accent" />
                       <Chip label="New" size="small" sx={{ position: 'absolute', top: 12, right: 12, bgcolor: '#FF6B6B', color: '#fff', fontWeight: 700 }} />
-                      <Box className="product-image-bg" sx={{ height: { xs: 110, md: 170 }, mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Box className="product-image-bg" sx={{ 
+                        height: 200,
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        mb: 2
+                      }}>
                         <img
                           src={
                             (camera.imageUrls && camera.imageUrls.length > 0)
@@ -84,7 +114,11 @@ const FeaturedCameras = ({ refresh, user }) => {
                       </Box>
                       <CardContent className="product-info" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', p: '0 !important', gap: 2 }}>
                         <Box sx={{ textAlign: 'center' }}>
-                          <Typography gutterBottom variant="h5" component="h2" align="center" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                          <Typography gutterBottom variant="h5" component="h2" align="center" sx={{ 
+                            fontWeight: 600, 
+                            color: 'text.primary',
+                            minHeight: '2.5em',
+                          }}>
                             {camera.name}
                           </Typography>
                         </Box>
@@ -125,7 +159,7 @@ const FeaturedCameras = ({ refresh, user }) => {
                                 if (!user) {
                                   navigate('/login');
                                 } else {
-                                  // Add Rent Now logic here for logged in users
+                                  navigate(`/checkout/${camera.id}`);
                                 }
                               }}
                             >

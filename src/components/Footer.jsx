@@ -28,9 +28,7 @@ const Footer = () => {
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
               Quick Links
             </Typography>
-            <Link href="#" display="block" sx={{ color: '#333', textDecoration: 'none', mb: 1, '&:hover': { color: '#FF6B6B' } }}>
-              About Us
-            </Link>
+            
             <Link href="#" display="block" sx={{ color: '#333', textDecoration: 'none', mb: 1, '&:hover': { color: '#FF6B6B' } }}>
               Camera Collection
             </Link>

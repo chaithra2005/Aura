@@ -1,12 +1,20 @@
 import { Box, Container, Typography, Button, Paper } from '@mui/material';
 
 const Hero = () => {
+
+  const handleScrollToServices = () => {
+    const servicesSection = document.getElementById('services-section');
+    if (servicesSection) {
+      servicesSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <Paper
       sx={{
         position: 'relative',
         backgroundColor: 'grey.800',
-        color: '#fff',
+        color: 'white',
         mb: 4,
         backgroundSize: 'cover',
         backgroundRepeat: 'no-repeat',
@@ -39,6 +47,7 @@ const Hero = () => {
               color="secondary"
               size="large"
               sx={{ mt: 2, fontWeight: 600 }}
+              onClick={handleScrollToServices}
             >
               Browse Cameras
             </Button>

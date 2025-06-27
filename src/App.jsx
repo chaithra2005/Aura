@@ -10,6 +10,15 @@ import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Home from './pages/Home';
 import { auth, onAuthStateChanged } from './firebase';
+import Checkout from './pages/Checkout';
+import Admin from './pages/Admin';
+import Accessories from './pages/Accessories';
+import AddAccessory from './pages/AddAccessory';
+import Freelancers from './pages/Freelancers';
+import AddFreelancer from './pages/AddFreelancer';
+import Packages from './pages/Packages';
+import FreelancerDetail from './pages/FreelancerDetail';
+import AccessoryDetail from './pages/AccessoryDetail';
 import './App.css';
 
 function PrivateRoute({ children }) {
@@ -18,7 +27,7 @@ function PrivateRoute({ children }) {
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return unsubscribe;
   }, []);
-  if (user === undefined) return null; // or a loading spinner
+  if (user === undefined) return null; 
   return user ? children : <Navigate to="/login" />;
 }
 
@@ -43,8 +52,7 @@ function App() {
           <Route path="/" element={
             <>
               <Hero />
-              <Home></Home>
-              {/* <FeaturedCameras refresh={refreshCameras} user={user} /> */}
+              <Home user={user}></Home>
             </>
           } />
           <Route path="/featured" element={<FeaturedCameras refresh={refreshCameras} user={user} />} />
@@ -53,9 +61,18 @@ function App() {
               <AddCamera onCameraAdded={handleCameraAdded} />
             </PrivateRoute>
           } />
+          <Route path="/accessories" element={<Accessories user={user} />} />
+          <Route path="/accessories/:id" element={<AccessoryDetail />} />
+          <Route path="/add-accessory" element={<PrivateRoute><AddAccessory /></PrivateRoute>} />
+          <Route path="/freelancers" element={<Freelancers user={user} />} />
+          <Route path="/freelancers/:id" element={<FreelancerDetail />} />
+          <Route path="/add-freelancer" element={<PrivateRoute><AddFreelancer /></PrivateRoute>} />
+          <Route path="/packages" element={<Packages />} />
           <Route path="/camera/:id" element={<CameraDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/checkout/:cameraId" element={<Checkout user={user} />} />
+          <Route path="/admin" element={<Admin user={user} />} />
         </Routes>
         <Footer />
       </div>
