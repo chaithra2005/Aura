@@ -1,7 +1,9 @@
 import React from 'react';
 import { Box, Typography, Container, Paper, Grid, Button } from '@mui/material';
+import { useCart } from '../CartContext';
+import { useNavigate } from 'react-router-dom';
 
-const packages = [
+export const packages = [
   {
     title: 'Basic Photo Package',
     price: '$250',
@@ -35,64 +37,98 @@ const packages = [
 ];
 
 const Packages = () => {
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
+
   return (
-    <Container maxWidth="lg" sx={{ py: 8 }}>
+    <Box sx={{ width: '100%', px: { xs: 2, md: 4 }, py: 8 }}>
       <Typography variant="h3" fontWeight={800} fontFamily="Inter" color="#222" align="center" gutterBottom>
         Photo & Video Shoot Packages
       </Typography>
       <Typography variant="h6" align="center" color="text.secondary" paragraph sx={{ mb: 6 }}>
         Choose the perfect package for your needs. We offer a range of options for capturing your special moments.
       </Typography>
-      <Grid container spacing={4}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {packages.map((pkg, index) => (
-          <Grid item key={index} xs={12} md={4}>
-            <Paper
-              sx={{
-                p: 4,
-                borderRadius: 2,
-                boxShadow: 2,
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100%',
-                justifyContent: 'space-between'
-              }}
-            >
-              <Box>
-                <Typography variant="h5" fontWeight={700} fontFamily="Inter" color="#333" gutterBottom>
-                  {pkg.title}
-                </Typography>
-                <Typography variant="h4" fontWeight={800} color="#FF6B6B" sx={{ my: 2 }}>
-                  {pkg.price}
-                </Typography>
-                <Box component="ul" sx={{ pl: 2, color: '#666' }}>
-                  {pkg.details.map((detail, i) => (
-                    <Typography component="li" key={i} sx={{ mb: 1 }}>{detail}</Typography>
-                  ))}
-                </Box>
+          <Box
+            key={index}
+            onClick={() => navigate(`/packages/${index}`)}
+            sx={{
+              cursor: 'pointer',
+              '&:hover': { boxShadow: 6 },
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              bgcolor: '#fff',
+              borderRadius: 2,
+              boxShadow: 2,
+              p: 2,
+              mb: 2,
+              width: '100%',
+              minHeight: 160,
+              border: '1px solid #eee',
+              gap: 3
+            }}
+          >
+            {/* Icon on the left */}
+            <Box sx={{
+              width: 120,
+              height: 160,
+              minWidth: 120,
+              minHeight: 160,
+              maxWidth: 120,
+              maxHeight: 160,
+              bgcolor: '#f8f8f8',
+              borderRadius: 1,
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mr: 2,
+              fontSize: 64
+            }}>
+              <span role="img" aria-label="package">📦</span>
+            </Box>
+            {/* Info on the right */}
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+              <Typography variant="h5" fontWeight={700} fontFamily="Inter" color="#222" sx={{ mb: 1 }}>
+                {pkg.title}
+              </Typography>
+              <Typography color="#666" sx={{ mb: 1 }}>
+                {pkg.details.join(' | ')}
+              </Typography>
+              <Typography fontWeight={800} color="#FF6B6B" sx={{ fontSize: '1.2rem', mt: 'auto' }}>
+                ₹{pkg.price.replace('$', '')}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                <Button
+                  size="large"
+                  variant="outlined"
+                  sx={{ fontWeight: 600 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addToCart({ ...pkg, type: 'package' });
+                  }}
+                >
+                  Add to Cart
+                </Button>
+                <Button
+                  size="large"
+                  className="dark-action-btn"
+                  sx={{ fontWeight: 600 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Book Now logic here
+                  }}
+                >
+                  Book Now
+                </Button>
               </Box>
-              <Button
-                variant="contained"
-                fullWidth
-                sx={{
-                  mt: 3,
-                  bgcolor: '#FF6B6B',
-                  color: '#fff',
-                  fontWeight: 700,
-                  borderRadius: 2,
-                  px: 4,
-                  py: 1.5,
-                  fontSize: '1.1rem',
-                  boxShadow: 'none',
-                  '&:hover': { bgcolor: '#e55a5a' }
-                }}
-              >
-                Book Now
-              </Button>
-            </Paper>
-          </Grid>
+            </Box>
+          </Box>
         ))}
-      </Grid>
-    </Container>
+      </Box>
+    </Box>
   );
 };
 

@@ -54,7 +54,7 @@ const AccessoryDetail = () => {
       py: { xs: 4, md: 8 },
       pt: { xs: '56px', md: '110px' }
     }}>
-      <Container maxWidth="lg">
+      <Container maxWidth={false} sx={{ width: '100%', px: 0 }}>
         <Grid container spacing={{ xs: 4, md: 6 }}>
           <Grid item xs={12} md={7}>
             <Paper

@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { styled, alpha } from '@mui/material/styles';
 import { collection, getDocs } from 'firebase/firestore';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 
 const navLinks = [
   { label: 'Home', to: '/' },
@@ -117,7 +118,7 @@ const Navbar = ({ user }) => {
 
   return (
     <AppBar position="fixed" color="transparent" elevation={0} sx={{ backdropFilter: 'blur(8px)' }}>
-      <Container maxWidth="lg" sx={{ px: { xs: 2, md: 4 } }}>
+      <Container maxWidth={false} sx={{ width: '100%', px: 2 }}>
         <Toolbar disableGutters sx={{ justifyContent: 'space-between', minHeight: { xs: 56, md: 72 } }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Typography
@@ -196,6 +197,10 @@ const Navbar = ({ user }) => {
                 {link.label}
               </Typography>
             ))}
+            {/* Cart Icon */}
+            <IconButton color="inherit" onClick={() => navigate('/cart')} sx={{ ml: 1 }}>
+              <ShoppingCartIcon />
+            </IconButton>
             {user && (
               <>
                 <Button
@@ -217,6 +222,7 @@ const Navbar = ({ user }) => {
                   <MenuItem component={RouterLink} to="/add-camera" onClick={handleMenuClose}>Add Camera</MenuItem>
                   <MenuItem component={RouterLink} to="/add-accessory" onClick={handleMenuClose}>Add Accessory</MenuItem>
                   <MenuItem component={RouterLink} to="/add-freelancer" onClick={handleMenuClose}>Add Freelancer</MenuItem>
+                  <MenuItem component={RouterLink} to="/add-package" onClick={handleMenuClose}>Add Packages</MenuItem>
                 </Menu>
               </>
             )}
@@ -307,6 +313,7 @@ const Navbar = ({ user }) => {
                 <MenuItem component={RouterLink} to="/add-camera" onClick={() => { handleDrawerToggle(); handleMenuClose(); }}>Add Camera</MenuItem>
                 <MenuItem component={RouterLink} to="/add-accessory" onClick={() => { handleDrawerToggle(); handleMenuClose(); }}>Add Accessory</MenuItem>
                 <MenuItem component={RouterLink} to="/add-freelancer" onClick={() => { handleDrawerToggle(); handleMenuClose(); }}>Add Freelancer</MenuItem>
+                <MenuItem component={RouterLink} to="/add-package" onClick={() => { handleDrawerToggle(); handleMenuClose(); }}>Add Packages</MenuItem>
               </Menu>
             </>
           )}

@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import Hero from './components/Hero';
 import FeaturedCameras from './components/FeaturedCameras';
-import Footer from './components/Footer';
 import AddCamera from './components/AddCamera';
 import CameraDetail from './pages/CameraDetail';
 import Login from './pages/Login';
@@ -19,7 +17,11 @@ import AddFreelancer from './pages/AddFreelancer';
 import Packages from './pages/Packages';
 import FreelancerDetail from './pages/FreelancerDetail';
 import AccessoryDetail from './pages/AccessoryDetail';
+import Cart from './pages/Cart';
+import PackageDetail from './pages/PackageDetail';
+import AddPackage from './pages/AddPackage';
 import './App.css';
+import ScrollToTop from './ScrollToTop';
 
 function PrivateRoute({ children }) {
   const [user, setUser] = useState(undefined);
@@ -46,15 +48,11 @@ function App() {
 
   return (
     <Router>
+      <ScrollToTop />
       <div className="app">
         <Navbar user={user} />
         <Routes>
-          <Route path="/" element={
-            <>
-              <Hero />
-              <Home user={user}></Home>
-            </>
-          } />
+          <Route path="/" element={<Home user={user} />} />
           <Route path="/featured" element={<FeaturedCameras refresh={refreshCameras} user={user} />} />
           <Route path="/add-camera" element={
             <PrivateRoute>
@@ -68,13 +66,15 @@ function App() {
           <Route path="/freelancers/:id" element={<FreelancerDetail />} />
           <Route path="/add-freelancer" element={<PrivateRoute><AddFreelancer /></PrivateRoute>} />
           <Route path="/packages" element={<Packages />} />
+          <Route path="/packages/:id" element={<PackageDetail />} />
           <Route path="/camera/:id" element={<CameraDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/checkout/:cameraId" element={<Checkout user={user} />} />
           <Route path="/admin" element={<Admin user={user} />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/add-package" element={<PrivateRoute><AddPackage /></PrivateRoute>} />
         </Routes>
-        <Footer />
       </div>
     </Router>
   );

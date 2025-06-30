@@ -75,7 +75,7 @@ const CameraDetail = () => {
       py: { xs: 4, md: 8 },
       pt: { xs: '56px', md: '110px' }
     }}>
-      <Container maxWidth="lg">
+      <Container maxWidth={false} sx={{ width: '100%', px: 0 }}>
         <Grid container spacing={{ xs: 4, md: 6 }}>
           {/* Left Side: Image Gallery */}
           <Grid item xs={12} md={7}>
@@ -120,7 +120,7 @@ const CameraDetail = () => {
           {/* Right Side: Info Panel */}
           <Grid item xs={12} md={5}>
             <Box sx={{ position: 'sticky', top: '100px' }}>
-              <Chip label="New Arrival" sx={{ bgcolor: '#333', color: '#fff', mb: 2 }} />
+              {/* <Chip label="New Arrival" sx={{ bgcolor: '#333', color: '#fff', mb: 2 }} /> */}
               <Typography variant="h1" sx={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '2.5rem', mb: 2 }}>
                 {camera.name}
               </Typography>

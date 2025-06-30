@@ -25,7 +25,7 @@ const Hero = () => {
         alignItems: 'center',
       }}
     >
-      <Container maxWidth="lg" sx={{ width: '100%' }}>
+      <Box sx={{ width: '100%', px: 2 }}>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           {/* Text Section */}
           <Box sx={{ maxWidth: { xs: '100%', md: '600px' }, zIndex: 2, py: { xs: 6, md: 10 } }}>
@@ -70,7 +70,7 @@ const Hero = () => {
             />
           </Box>
         </Box>
-      </Container>
+      </Box>
     </Paper>
   );
 };

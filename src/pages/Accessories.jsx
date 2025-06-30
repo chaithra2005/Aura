@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Container, Paper, CircularProgress, Grid } from '@mui/material';
+import { Box, Typography, Container, Paper, CircularProgress, Grid, Button } from '@mui/material';
 import { db } from '../firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { useCart } from '../CartContext';
+import { useNavigate } from 'react-router-dom';
 
 const Accessories = ({ user }) => {
   const [accessories, setAccessories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchAccessories = async () => {
@@ -25,7 +29,7 @@ const Accessories = ({ user }) => {
   }, []);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 8 }}>
+    <Box sx={{ width: '100%', px: { xs: 2, md: 4 }, py: 8 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 6 }}>
         <Typography variant="h3" fontWeight={800} fontFamily="Inter" color="#222">
           Camera Accessories
@@ -36,26 +40,82 @@ const Accessories = ({ user }) => {
           <CircularProgress />
         </Box>
       ) : (
-        <Grid container spacing={4}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {accessories.map(accessory => (
-            <Grid item key={accessory.id} xs={12} sm={6} md={4}>
-              <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 2, display: 'flex', flexDirection: 'column', height: 450, justifyContent: 'space-between' }}>
-                <Box>
-                  {accessory.imageUrl && (
-                    <Box sx={{ height: 200, mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <img src={accessory.imageUrl} alt={accessory.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'cover', borderRadius: '8px' }} />
-                    </Box>
-                  )}
-                  <Typography variant="h5" fontWeight={700} fontFamily="Inter" color="#333" sx={{ minHeight: '2.5em' }}>{accessory.name}</Typography>
-                  <Typography color="#666" sx={{ flexGrow: 1, mt: 1 }}>{accessory.description}</Typography>
-                </Box>
-                <Typography fontWeight={800} color="#FF6B6B" sx={{ mt: 2 }}>${accessory.price}</Typography>
-              </Paper>
-            </Grid>
+            <Box
+              key={accessory.id}
+              onClick={() => navigate(`/accessories/${accessory.id}`)}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': { boxShadow: 6 },
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                bgcolor: '#fff',
+                borderRadius: 2,
+                boxShadow: 2,
+                p: 2,
+                mb: 2,
+                width: '100%',
+                minHeight: 160,
+                border: '1px solid #eee',
+                gap: 3
+              }}
+            >
+              {/* Image on the left */}
+              <Box sx={{
+                width: 120,
+                height: 160,
+                minWidth: 120,
+                minHeight: 160,
+                maxWidth: 120,
+                maxHeight: 160,
+                bgcolor: '#f8f8f8',
+                borderRadius: 1,
+                overflow: 'hidden',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mr: 2
+              }}>
+                {accessory.imageUrl ? (
+                  <img
+                    src={accessory.imageUrl}
+                    alt={accessory.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}
+                  />
+                ) : (
+                  <Typography color="#999" variant="body2">No Image</Typography>
+                )}
+              </Box>
+              {/* Info on the right */}
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+                <Typography variant="h5" fontWeight={700} fontFamily="Inter" color="#222" sx={{ mb: 1 }}>
+                  {accessory.name}
+                </Typography>
+                <Typography color="#666" sx={{ mb: 1 }}>
+                  {accessory.description}
+                </Typography>
+                <Typography fontWeight={800} color="#FF6B6B" sx={{ fontSize: '1.2rem', mt: 'auto' }}>
+                  ₹{accessory.price}
+                </Typography>
+                <Button
+                  size="large"
+                  variant="outlined"
+                  sx={{ fontWeight: 600, mt: 2 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addToCart({ ...accessory, type: 'accessory' });
+                  }}
+                >
+                  Add to Cart
+                </Button>
+              </Box>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       )}
-    </Container>
+    </Box>
   );
 };
 
