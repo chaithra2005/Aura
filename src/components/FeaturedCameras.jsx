@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
-import { Container, Typography, Grid, Card, CardMedia, CardContent, CardActions, Button, Box, CircularProgress, Chip, Paper, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import {
+  Typography, Button, Box, CircularProgress, Snackbar,
+  Alert as MuiAlert, FormControl, InputLabel, Select, MenuItem
+} from '@mui/material';
 import { useCart } from '../CartContext';
 
 const FeaturedCameras = ({ refresh, user }) => {
   const [cameras, setCameras] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState('All');
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
@@ -28,23 +32,37 @@ const FeaturedCameras = ({ refresh, user }) => {
     fetchCameras();
   }, [refresh]);
 
-  const filteredCameras = selectedCompany === 'All' 
-    ? cameras 
+  const handleAddToCart = (camera) => {
+    addToCart({ ...camera, type: 'camera' });
+    setSnackbarOpen(true);
+  };
+
+  const handleCloseSnackbar = (_, reason) => {
+    if (reason === 'clickaway') return;
+    setSnackbarOpen(false);
+  };
+
+  const filteredCameras = selectedCompany === 'All'
+    ? cameras
     : cameras.filter(camera => camera.company === selectedCompany);
 
   const companies = ['All', 'Nikon', 'Canon', 'Sony'];
 
   return (
     <Box sx={{ width: '100vw', px: 0, py: 8, margin: 0 }}>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <MuiAlert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+          Item added to cart!
+        </MuiAlert>
+      </Snackbar>
+
       <Box sx={{ width: '100%', p: 0, minWidth: 0 }}>
-        <Typography
-          component="h2"
-          variant="h3"
-          align="center"
-          color="text.primary"
-          gutterBottom
-          sx={{ fontWeight: 700 }}
-        >
+        <Typography variant="h3" align="center" fontWeight={700} gutterBottom>
           Featured Cameras
         </Typography>
         <Typography variant="h6" align="center" color="text.secondary" paragraph>
@@ -74,7 +92,7 @@ const FeaturedCameras = ({ refresh, user }) => {
             <CircularProgress />
           </Box>
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {filteredCameras.map((camera) => (
               <Box
                 key={camera.id}
@@ -93,35 +111,31 @@ const FeaturedCameras = ({ refresh, user }) => {
                   gap: 4
                 }}
               >
-                {/* Image on the left */}
+                {/* Image */}
                 <Box sx={{
                   width: 280,
                   height: 240,
-                  minWidth: 180,
-                  minHeight: 240,
-                  maxWidth: 280,
-                  maxHeight: 240,
                   bgcolor: '#f8f8f8',
                   borderRadius: 1,
                   overflow: 'hidden',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  mr: 3
+                  justifyContent: 'center'
                 }}>
                   <img
                     src={
-                      (camera.imageUrls && camera.imageUrls.length > 0)
-                        ? camera.imageUrls[0]
-                        : camera.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'
+                      camera.imageUrls?.[0] ||
+                      camera.imageUrl ||
+                      'https://via.placeholder.com/300x200?text=No+Image'
                     }
                     alt={camera.name}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}
                   />
                 </Box>
-                {/* Info on the right */}
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
-                  <Typography variant="h4" fontWeight={700} fontFamily="Inter" color="#222" sx={{ mb: 2 }}>
+
+                {/* Info */}
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <Typography variant="h4" fontWeight={700} sx={{ mb: 2 }}>
                     {camera.name}
                   </Typography>
                   <Typography color="#666" sx={{ mb: 2, fontSize: '1.2rem' }}>
@@ -133,27 +147,25 @@ const FeaturedCameras = ({ refresh, user }) => {
                   <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
                     <Button
                       size="large"
-                      className="dark-action-btn"
+                      variant="outlined"
                       sx={{ fontWeight: 600 }}
                       onClick={() => {
-                        if (!user) {
-                          navigate('/login');
-                        } else {
-                          navigate(`/camera/${camera.id}`);
-                        }
+                        if (!user) navigate('/login');
+                        else navigate(`/camera/${camera.id}`);
                       }}
                     >
                       View Details
                     </Button>
                     <Button
                       size="large"
-                      className="dark-action-btn"
+                      variant="contained"
                       sx={{ fontWeight: 600 }}
                       onClick={() => {
                         if (!user) {
                           navigate('/login');
                         } else {
-                          navigate(`/checkout/${camera.id}`);
+                          addToCart({ ...camera, type: 'camera' });
+                          navigate('/checkout');
                         }
                       }}
                     >
@@ -163,7 +175,7 @@ const FeaturedCameras = ({ refresh, user }) => {
                       size="large"
                       variant="outlined"
                       sx={{ fontWeight: 600 }}
-                      onClick={() => addToCart({ ...camera, type: 'camera' })}
+                      onClick={() => handleAddToCart(camera)}
                     >
                       Add to Cart
                     </Button>
@@ -178,4 +190,4 @@ const FeaturedCameras = ({ refresh, user }) => {
   );
 };
 
-export default FeaturedCameras; 
+export default FeaturedCameras;

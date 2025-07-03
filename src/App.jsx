@@ -29,7 +29,7 @@ function PrivateRoute({ children }) {
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return unsubscribe;
   }, []);
-  if (user === undefined) return null; 
+  if (user === undefined) return null;
   return user ? children : <Navigate to="/login" />;
 }
 
@@ -54,26 +54,54 @@ function App() {
         <Routes>
           <Route path="/" element={<Home user={user} />} />
           <Route path="/featured" element={<FeaturedCameras refresh={refreshCameras} user={user} />} />
-          <Route path="/add-camera" element={
-            <PrivateRoute>
-              <AddCamera onCameraAdded={handleCameraAdded} />
-            </PrivateRoute>
-          } />
+          <Route
+            path="/add-camera"
+            element={
+              <PrivateRoute>
+                <AddCamera onCameraAdded={handleCameraAdded} />
+              </PrivateRoute>
+            }
+          />
           <Route path="/accessories" element={<Accessories user={user} />} />
           <Route path="/accessories/:id" element={<AccessoryDetail />} />
-          <Route path="/add-accessory" element={<PrivateRoute><AddAccessory /></PrivateRoute>} />
+          <Route
+            path="/add-accessory"
+            element={
+              <PrivateRoute>
+                <AddAccessory />
+              </PrivateRoute>
+            }
+          />
           <Route path="/freelancers" element={<Freelancers user={user} />} />
           <Route path="/freelancers/:id" element={<FreelancerDetail />} />
-          <Route path="/add-freelancer" element={<PrivateRoute><AddFreelancer /></PrivateRoute>} />
+          <Route
+            path="/add-freelancer"
+            element={
+              <PrivateRoute>
+                <AddFreelancer />
+              </PrivateRoute>
+            }
+          />
           <Route path="/packages" element={<Packages />} />
           <Route path="/packages/:id" element={<PackageDetail />} />
           <Route path="/camera/:id" element={<CameraDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
+
+          {/* ✅ Checkout Routes */}
           <Route path="/checkout/:cameraId" element={<Checkout user={user} />} />
+          <Route path="/checkout" element={<Checkout user={user} />} /> {/* This was missing */}
+
           <Route path="/admin" element={<Admin user={user} />} />
           <Route path="/cart" element={<Cart />} />
-          <Route path="/add-package" element={<PrivateRoute><AddPackage /></PrivateRoute>} />
+          <Route
+            path="/add-package"
+            element={
+              <PrivateRoute>
+                <AddPackage />
+              </PrivateRoute>
+            }
+          />
         </Routes>
       </div>
     </Router>

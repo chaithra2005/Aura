@@ -1,118 +1,188 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { doc, getDoc, addDoc, collection, Timestamp } from 'firebase/firestore';
-import { Box, Paper, Typography, Button, CircularProgress, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, TextField, Alert } from '@mui/material';
+import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import {
+  Box,
+  Paper,
+  Typography,
+  Button,
+  TextField,
+  Alert,
+  RadioGroup,
+  Radio,
+  FormControlLabel,
+  FormControl,
+  FormLabel,
+  CircularProgress,
+} from '@mui/material';
+import { useCart } from '../CartContext';
 
 const Checkout = ({ user }) => {
-  const { cameraId } = useParams();
-  const [camera, setCamera] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { cartItems, clearCart } = useCart();
   const [rentDays, setRentDays] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [upiId, setUpiId] = useState('');
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchCamera = async () => {
-      setLoading(true);
-      try {
-        const docRef = doc(db, 'cameras', cameraId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setCamera({ id: docSnap.id, ...docSnap.data() });
-        } else {
-          setError('Camera not found.');
-        }
-      } catch (err) {
-        setError('Failed to fetch camera details.');
-      }
-      setLoading(false);
-    };
-    if (cameraId) fetchCamera();
-  }, [cameraId]);
+  const total = cartItems.reduce(
+    (sum, item) => sum + item.price * (item.quantity || 1),
+    0
+  );
 
   const handleOrder = async () => {
     setError('');
     setSuccess('');
-    if (!user) {
-      setError('You must be logged in to rent a camera.');
-      return;
-    }
-    if (paymentMethod === 'upi' && !upiId) {
-      setError('Please enter your UPI ID.');
-      return;
-    }
+
+    if (!user) return setError('You must be logged in to rent items.');
+    if (!name || !phone || !address)
+      return setError('Please fill all customer details.');
+    if (paymentMethod === 'upi' && !upiId)
+      return setError('Please enter your UPI ID.');
+    if (cartItems.length === 0) return setError('Your cart is empty.');
+
+    setLoading(true);
     try {
-      await addDoc(collection(db, 'rentals'), {
-        cameraId: camera.id,
-        cameraName: camera.name,
-        userId: user.uid,
-        userEmail: user.email,
-        rentDays,
-        paymentMethod,
-        upiId: paymentMethod === 'upi' ? upiId : '',
-        rentedAt: Timestamp.now(),
-        status: 'pending',
-      });
+      for (const item of cartItems) {
+        await addDoc(collection(db, 'rentals'), {
+          cameraId: item.id,
+          cameraName: item.name,
+          userId: user.uid,
+          userEmail: user.email,
+          rentDays,
+          paymentMethod,
+          upiId: paymentMethod === 'upi' ? upiId : '',
+          name,
+          phone,
+          address,
+          rentedAt: Timestamp.now(),
+          status: 'pending',
+        });
+      }
+
+      clearCart();
       setSuccess('Order placed successfully!');
       setTimeout(() => navigate('/featured'), 2000);
     } catch (err) {
-      setError('Failed to place order. Please try again.');
+      console.error(err);
+      setError('Failed to place order.');
+    }
+    setLoading(false);
+  };
+
+  const handleRentDaysChange = (e) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value >= 1) {
+      setRentDays(value);
+    } else if (e.target.value === '') {
+      setRentDays('');
     }
   };
 
-  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><CircularProgress /></Box>;
-  if (error) return <Alert severity="error">{error}</Alert>;
-  if (!camera) return null;
+  if (loading) {
+    return (
+      <Box
+        sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
-    <Box sx={{ maxWidth: 500, mx: 'auto', mt: 6, mb: 6 }}>
+    <Box sx={{ maxWidth: 600, mx: 'auto', mt: 6, mb: 6 }}>
       <Paper sx={{ p: 4, borderRadius: 2, boxShadow: 3 }}>
-        <Typography variant="h4" fontWeight={800} gutterBottom>Checkout</Typography>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6">{camera.name}</Typography>
-          <Typography color="text.secondary">₹{camera.price}/day</Typography>
-        </Box>
+        <Typography variant="h4" fontWeight={800} gutterBottom>
+          Checkout
+        </Typography>
+
+        {cartItems.map((item) => (
+          <Box key={item.id} sx={{ mb: 2, p: 2, border: '1px solid #ccc', borderRadius: 2 }}>
+            <Typography fontWeight={700}>{item.name}</Typography>
+            <Typography>
+              ₹{item.price} × {item.quantity || 1}
+            </Typography>
+          </Box>
+        ))}
+
+        <Typography variant="h6" mt={2}>Total: ₹{total}</Typography>
+
+        {/* Customer Info */}
         <TextField
+          fullWidth
+          label="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          sx={{ mt: 2 }}
+        />
+
+        <TextField
+          fullWidth
+          label="Phone Number"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          sx={{ mt: 2 }}
+          placeholder="Enter your 10-digit number"
+        />
+
+        <TextField
+          fullWidth
+          label="Address"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          sx={{ mt: 2 }}
+          multiline
+          rows={3}
+        />
+
+        {/* Rental Duration */}
+        <TextField
+          fullWidth
           label="Rental Duration (days)"
           type="number"
           value={rentDays}
-          onChange={e => setRentDays(Math.max(1, parseInt(e.target.value) || 1))}
-          inputProps={{ min: 1, max: 30 }}
-          sx={{ mb: 3 }}
-          fullWidth
+          onChange={handleRentDaysChange}
+          sx={{ mt: 2 }}
+          inputProps={{ min: 1 }}
         />
-        <Typography variant="h6" sx={{ mb: 1 }}>Total: ₹{camera.price * rentDays}</Typography>
-        <FormControl component="fieldset" sx={{ mb: 3 }}>
-          <FormLabel component="legend">Payment Method</FormLabel>
+
+        {/* Payment Method */}
+        <FormControl component="fieldset" sx={{ mt: 2 }}>
+          <FormLabel>Payment Method</FormLabel>
           <RadioGroup
             row
             value={paymentMethod}
-            onChange={e => setPaymentMethod(e.target.value)}
+            onChange={(e) => setPaymentMethod(e.target.value)}
           >
             <FormControlLabel value="cod" control={<Radio />} label="Cash on Delivery" />
             <FormControlLabel value="upi" control={<Radio />} label="Pay using UPI" />
           </RadioGroup>
         </FormControl>
+
         {paymentMethod === 'upi' && (
           <TextField
+            fullWidth
             label="Your UPI ID"
             value={upiId}
-            onChange={e => setUpiId(e.target.value)}
-            fullWidth
-            sx={{ mb: 2 }}
+            onChange={(e) => setUpiId(e.target.value)}
+            sx={{ mt: 2 }}
           />
         )}
-        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+        {/* Alerts */}
+        {success && <Alert severity="success" sx={{ mt: 2 }}>{success}</Alert>}
+        {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+
         <Button
           variant="contained"
-          color="secondary"
           fullWidth
-          sx={{ fontWeight: 700, py: 1.5, borderRadius: 2, bgcolor: '#FF6B6B', '&:hover': { bgcolor: '#e55a5a' } }}
+          sx={{ mt: 3, fontWeight: 700, py: 1.5 }}
           onClick={handleOrder}
         >
           Place Order
@@ -122,4 +192,4 @@ const Checkout = ({ user }) => {
   );
 };
 
-export default Checkout; 
+export default Checkout;

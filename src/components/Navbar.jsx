@@ -12,7 +12,7 @@ const navLinks = [
 ];
 
 const ADMIN_EMAILS = [
-  'deekshithsk24@gmail.com', // Replace with your admin email(s)
+  'deekshithsk24@gmail.com', 
 ];
 
 const SearchBar = styled('div')(({ theme }) => ({
@@ -135,7 +135,7 @@ const Navbar = ({ user }) => {
                 mr: 2,
               }}
             >
-              Chaithra
+              Aperture Aura
             </Typography>
           </Box>
           

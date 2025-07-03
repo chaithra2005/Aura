@@ -1,10 +1,18 @@
 import React from 'react';
 import { Box, Typography, Button, Divider } from '@mui/material';
 import { useCart } from '../CartContext';
+import { useNavigate } from 'react-router-dom';
 
 const Cart = () => {
   const { cartItems, removeFromCart, clearCart } = useCart();
+  const navigate = useNavigate();
   const total = cartItems.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+
+  const handleCheckout = () => {
+    if (cartItems.length > 0) {
+      navigate('/checkout'); // Navigate to checkout with all items
+    }
+  };
 
   return (
     <Box sx={{ width: '100%', maxWidth: 800, mx: 'auto', py: 8, px: 2 }}>
@@ -14,7 +22,19 @@ const Cart = () => {
       ) : (
         <>
           {cartItems.map((item, idx) => (
-            <Box key={item.id + item.type} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: '#fff', borderRadius: 2, boxShadow: 1, p: 3, mb: 2 }}>
+            <Box
+              key={item.id + item.type}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                bgcolor: '#fff',
+                borderRadius: 2,
+                boxShadow: 1,
+                p: 3,
+                mb: 2
+              }}
+            >
               <Box>
                 <Typography variant="h6" fontWeight={700}>{item.name || item.title}</Typography>
                 <Typography color="text.secondary">{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</Typography>
@@ -27,7 +47,7 @@ const Cart = () => {
           <Typography variant="h5" fontWeight={800} align="right" mb={2}>Total: ₹{total}</Typography>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
             <Button variant="outlined" color="error" onClick={clearCart}>Clear Cart</Button>
-            <Button variant="contained" color="primary">Checkout</Button>
+            <Button variant="contained" color="primary" onClick={handleCheckout}>Checkout</Button>
           </Box>
         </>
       )}
@@ -35,4 +55,4 @@ const Cart = () => {
   );
 };
 
-export default Cart; 
+export default Cart;

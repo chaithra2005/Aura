@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TextField, Button, Paper, Typography, Box, Alert } from '@mui/material';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase';
+import { TextField, Button, Paper, Typography, Box, Alert, Divider } from '@mui/material';
+import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { auth, provider } from '../firebase';
+import { FcGoogle } from 'react-icons/fc';
 
 const SignUp = () => {
   const [email, setEmail] = useState('');
@@ -11,7 +12,7 @@ const SignUp = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleEmailSignUp = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -20,10 +21,18 @@ const SignUp = () => {
       navigate('/');
     } catch (err) {
       setError(err.message || 'Sign up failed');
-      setLoading(false);
-      return;
     }
     setLoading(false);
+  };
+
+  const handleGoogleSignUp = async () => {
+    setError('');
+    try {
+      await signInWithPopup(auth, provider);
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Google sign-up failed');
+    }
   };
 
   return (
@@ -31,7 +40,8 @@ const SignUp = () => {
       <Paper elevation={3} sx={{ p: 4, width: 350 }}>
         <Typography variant="h5" mb={2} align="center">Sign Up</Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        <form onSubmit={handleSubmit}>
+
+        <form onSubmit={handleEmailSignUp}>
           <TextField
             label="Email"
             type="email"
@@ -61,9 +71,27 @@ const SignUp = () => {
             {loading ? 'Signing up...' : 'Sign Up'}
           </Button>
         </form>
+
+        <Divider sx={{ my: 2 }}>OR</Divider>
+
+        <Button
+          variant="outlined"
+          fullWidth
+          startIcon={<FcGoogle size={22} />}
+          onClick={handleGoogleSignUp}
+          sx={{
+            fontWeight: 600,
+            borderColor: '#ccc',
+            textTransform: 'none',
+            backgroundColor: '#fff',
+            '&:hover': { backgroundColor: '#f5f5f5' }
+          }}
+        >
+          Sign up with Google
+        </Button>
       </Paper>
     </Box>
   );
 };
 
-export default SignUp; 
+export default SignUp;
