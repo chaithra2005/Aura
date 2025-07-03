@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../firebase';
+import { db, storage } from '../firebase';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import GpayImg from '../assets/gpay.jpg';
 import {
   Box,
   Paper,
@@ -23,6 +25,7 @@ const Checkout = ({ user }) => {
   const [rentDays, setRentDays] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [upiId, setUpiId] = useState('');
+  const [paymentProof, setPaymentProof] = useState(null);
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
@@ -43,12 +46,22 @@ const Checkout = ({ user }) => {
     if (!user) return setError('You must be logged in to rent items.');
     if (!name || !phone || !address)
       return setError('Please fill all customer details.');
-    if (paymentMethod === 'upi' && !upiId)
-      return setError('Please enter your UPI ID.');
+    if (paymentMethod === 'upi' && (!upiId || !paymentProof))
+      return setError('Please enter UPI ID and upload payment screenshot.');
     if (cartItems.length === 0) return setError('Your cart is empty.');
 
     setLoading(true);
     try {
+      let paymentProofURL = '';
+      if (paymentMethod === 'upi' && paymentProof) {
+        const storageRef = ref(
+          storage,
+          `payments/${user.uid}_${Date.now()}_${paymentProof.name}`
+        );
+        const snapshot = await uploadBytes(storageRef, paymentProof);
+        paymentProofURL = await getDownloadURL(snapshot.ref);
+      }
+
       for (const item of cartItems) {
         await addDoc(collection(db, 'rentals'), {
           cameraId: item.id,
@@ -58,6 +71,7 @@ const Checkout = ({ user }) => {
           rentDays,
           paymentMethod,
           upiId: paymentMethod === 'upi' ? upiId : '',
+          paymentProofURL: paymentMethod === 'upi' ? paymentProofURL : '',
           name,
           phone,
           address,
@@ -85,17 +99,11 @@ const Checkout = ({ user }) => {
     }
   };
 
-  if (loading) {
-    return (
-      <Box
-        sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  return (
+  return loading ? (
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <CircularProgress />
+    </Box>
+  ) : (
     <Box sx={{ maxWidth: 600, mx: 'auto', mt: 6, mb: 6 }}>
       <Paper sx={{ p: 4, borderRadius: 2, boxShadow: 3 }}>
         <Typography variant="h4" fontWeight={800} gutterBottom>
@@ -114,66 +122,44 @@ const Checkout = ({ user }) => {
         <Typography variant="h6" mt={2}>Total: ₹{total}</Typography>
 
         {/* Customer Info */}
-        <TextField
-          fullWidth
-          label="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          sx={{ mt: 2 }}
-        />
-
-        <TextField
-          fullWidth
-          label="Phone Number"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          sx={{ mt: 2 }}
-          placeholder="Enter your 10-digit number"
-        />
-
-        <TextField
-          fullWidth
-          label="Address"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          sx={{ mt: 2 }}
-          multiline
-          rows={3}
-        />
-
-        {/* Rental Duration */}
-        <TextField
-          fullWidth
-          label="Rental Duration (days)"
-          type="number"
-          value={rentDays}
-          onChange={handleRentDaysChange}
-          sx={{ mt: 2 }}
-          inputProps={{ min: 1 }}
-        />
+        <TextField fullWidth label="Name" value={name} onChange={(e) => setName(e.target.value)} sx={{ mt: 2 }} />
+        <TextField fullWidth label="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} sx={{ mt: 2 }} placeholder="Enter your 10-digit number" />
+        <TextField fullWidth label="Address" value={address} onChange={(e) => setAddress(e.target.value)} sx={{ mt: 2 }} multiline rows={3} />
+        <TextField fullWidth label="Rental Duration (days)" type="number" value={rentDays} onChange={handleRentDaysChange} sx={{ mt: 2 }} inputProps={{ min: 1 }} />
 
         {/* Payment Method */}
         <FormControl component="fieldset" sx={{ mt: 2 }}>
           <FormLabel>Payment Method</FormLabel>
-          <RadioGroup
-            row
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-          >
+          <RadioGroup row value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
             <FormControlLabel value="cod" control={<Radio />} label="Cash on Delivery" />
             <FormControlLabel value="upi" control={<Radio />} label="Pay using UPI" />
           </RadioGroup>
         </FormControl>
+{paymentMethod === 'upi' && (
+  <>
+    <Box sx={{ mt: 2, textAlign: 'center' }}>
+      <Typography variant="subtitle1" gutterBottom>
+        Scan the QR Code to Pay
+      </Typography>
+      <img
+        src={GpayImg}
+        alt="UPI QR Code"
+        style={{ width: '200px', height: '200px', borderRadius: '8px' }}
+      />
+    </Box>
 
-        {paymentMethod === 'upi' && (
-          <TextField
-            fullWidth
-            label="Your UPI ID"
-            value={upiId}
-            onChange={(e) => setUpiId(e.target.value)}
-            sx={{ mt: 2 }}
-          />
-        )}
+    <TextField
+      fullWidth
+      type="file"
+      label="Upload Payment Screenshot"
+      InputLabelProps={{ shrink: true }}
+      inputProps={{ accept: 'image/*' }}
+      onChange={(e) => setPaymentProof(e.target.files[0])}
+      sx={{ mt: 2 }}
+    />
+  </>
+)}
+
 
         {/* Alerts */}
         {success && <Alert severity="success" sx={{ mt: 2 }}>{success}</Alert>}
