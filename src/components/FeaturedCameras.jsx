@@ -98,29 +98,30 @@ const FeaturedCameras = ({ refresh, user }) => {
                 key={camera.id}
                 sx={{
                   display: 'flex',
-                  flexDirection: 'row',
-                  alignItems: 'flex-start',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  alignItems: { xs: 'center', sm: 'flex-start' },
                   bgcolor: '#fff',
                   borderRadius: 2,
                   boxShadow: 2,
-                  p: 4,
+                  p: { xs: 2, sm: 4 },
                   mb: 3,
                   width: '100%',
-                  minHeight: 240,
+                  minHeight: { xs: 'auto', sm: 240 },
                   border: '1px solid #eee',
-                  gap: 4
+                  gap: { xs: 2, sm: 4 }
                 }}
               >
                 {/* Image */}
                 <Box sx={{
-                  width: 280,
-                  height: 240,
+                  width: { xs: '100%', sm: 280 },
+                  height: { xs: 180, sm: 240 },
                   bgcolor: '#f8f8f8',
                   borderRadius: 1,
                   overflow: 'hidden',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  mb: { xs: 2, sm: 0 }
                 }}>
                   <img
                     src={

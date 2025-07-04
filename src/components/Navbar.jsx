@@ -276,6 +276,32 @@ const Navbar = ({ user }) => {
           </IconButton>
         </Box>
         <List>
+          <ListItem
+            button
+            key="Cart"
+            component={RouterLink}
+            to="/cart"
+            onClick={handleDrawerToggle}
+            selected={location.pathname === '/cart'}
+            sx={{
+              fontFamily: 'Inter',
+              fontWeight: 800,
+              fontSize: '1.1rem',
+              color: '#333',
+              '&.Mui-selected, &.Mui-selected:hover': {
+                color: '#FF6B6B',
+                bgcolor: 'transparent',
+              },
+              py: 2,
+              px: 3,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}
+          >
+            <ShoppingCartIcon sx={{ mr: 1 }} />
+            <ListItemText primary="Cart" primaryTypographyProps={{ fontWeight: 800 }} />
+          </ListItem>
           {navLinks.map((link) => (
             <ListItem
               button
