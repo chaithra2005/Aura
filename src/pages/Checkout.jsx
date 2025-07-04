@@ -32,6 +32,8 @@ const Checkout = ({ user }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [cloudUrl, setCloudUrl] = useState('');
   const navigate = useNavigate();
 
   const total = cartItems.reduce(
@@ -99,6 +101,27 @@ const Checkout = ({ user }) => {
     }
   };
 
+  async function uploadGpayImgToCloudinary() {
+    setUploading(true);
+    try {
+      const response = await fetch(GpayImg);
+      const blob = await response.blob();
+      const formData = new FormData();
+      formData.append('file', blob, 'gpay.png');
+      formData.append('upload_preset', 'camera_rental');
+      const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dnqxxqemt/image/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await cloudRes.json();
+      setCloudUrl(data.secure_url);
+      alert('Uploaded to Cloudinary! URL: ' + data.secure_url);
+    } catch (err) {
+      alert('Upload failed: ' + err.message);
+    }
+    setUploading(false);
+  }
+
   return loading ? (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
       <CircularProgress />
@@ -147,6 +170,20 @@ const Checkout = ({ user }) => {
         style={{ width: '200px', height: '200px', borderRadius: '8px' }}
       />
     </Box>
+
+    <Button
+      variant="contained"
+      color="primary"
+      sx={{ mt: 2 }}
+      onClick={uploadGpayImgToCloudinary}
+      disabled={uploading}
+    >
+      Upload Screenshot of Payment
+    </Button>
+
+    {cloudUrl && (
+      <Typography sx={{ mt: 2 }} color="success.main">Cloudinary URL: {cloudUrl}</Typography>
+    )}
 
     <TextField
       fullWidth
