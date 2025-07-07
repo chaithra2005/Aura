@@ -150,12 +150,14 @@ const Home = ({ user }) => {
               <div style={{ fontWeight: 700, marginBottom: 8 }}>Quick Links</div>
               <div><a href="#" style={{ color: '#333', textDecoration: 'none', display: 'block', marginBottom: 4 }}>Camera Collection</a></div>
               <div><a href="#" style={{ color: '#333', textDecoration: 'none', display: 'block', marginBottom: 4 }}>Rental Terms</a></div>
-              <div><a href="#" style={{ color: '#333', textDecoration: 'none', display: 'block' }}>Contact Us</a></div>
+   
             </div>
             <div style={{ flex: 1, minWidth: 220, marginBottom: 24 }}>
               <div style={{ fontWeight: 700, marginBottom: 8 }}>Contact Info</div>
-              <div style={{ color: '#666', fontSize: 14 }}>123 Camera Street<br />Photography City, PC 12345</div>
-              <div style={{ color: '#666', fontSize: 14, marginTop: 8 }}>Email: info@camerarent.com<br />Phone: (123) 456-7890</div>
+              <div style={{ color: '#666', fontSize: 14 }}>
+                Camera rental office near Nitte college<br /> Padil
+              </div>
+              <div style={{ color: '#666', fontSize: 14, marginTop: 8 }}>Email: jithshdas08@gmail.com<br />Phone: 8431890748</div>
             </div>
           </div>
           <div style={{ textAlign: 'center', color: '#999', fontSize: 13, marginTop: 32 }}>

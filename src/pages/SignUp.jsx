@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TextField, Button, Paper, Typography, Box, Alert, Divider } from '@mui/material';
-import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithPopup, sendEmailVerification } from 'firebase/auth';
 import { auth, provider } from '../firebase';
 import { FcGoogle } from 'react-icons/fc';
 
@@ -10,15 +10,21 @@ const SignUp = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
   const handleEmailSignUp = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      navigate('/');
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await sendEmailVerification(userCredential.user);
+      setSuccess('Account created! A verification email has been sent. Please check your inbox and verify your email before signing in.');
+      setEmail('');
+      setPassword('');
+      // Do not navigate yet; wait for user to verify
     } catch (err) {
       setError(err.message || 'Sign up failed');
     }
@@ -40,6 +46,7 @@ const SignUp = () => {
       <Paper elevation={3} sx={{ p: 4, width: 350 }}>
         <Typography variant="h5" mb={2} align="center">Sign Up</Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
         <form onSubmit={handleEmailSignUp}>
           <TextField

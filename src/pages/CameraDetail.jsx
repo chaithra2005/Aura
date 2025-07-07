@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link as RouterLink } from 'react-router-dom';
+import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import {
@@ -10,6 +10,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import { useCart } from '../CartContext';
 
 const CameraDetail = () => {
   const { id } = useParams();
@@ -18,6 +19,8 @@ const CameraDetail = () => {
   const [error, setError] = useState('');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [rentDays, setRentDays] = useState(1);
+  const { addToCart, replaceCartWithItem } = useCart();
+  const navigate = useNavigate();
 
   const handlePrevImage = () => {
     setActiveImageIndex((prevIndex) => (prevIndex === 0 ? camera.imageUrls.length - 1 : prevIndex - 1));
@@ -25,6 +28,12 @@ const CameraDetail = () => {
 
   const handleNextImage = () => {
     setActiveImageIndex((prevIndex) => (prevIndex === camera.imageUrls.length - 1 ? 0 : prevIndex + 1));
+  };
+
+  const handleRentNow = () => {
+    const total = camera.price * rentDays;
+    replaceCartWithItem({ ...camera, type: 'camera', rentDays, total });
+    navigate('/checkout');
   };
 
   useEffect(() => {
@@ -155,6 +164,7 @@ const CameraDetail = () => {
                     fontWeight: 600,
                     borderRadius: 2
                   }}
+                  onClick={handleRentNow}
                 >
                   Rent Now
                 </Button>

@@ -21,8 +21,7 @@ import {
 import { useCart } from '../CartContext';
 
 const Checkout = ({ user }) => {
-  const { cartItems, clearCart } = useCart();
-  const [rentDays, setRentDays] = useState(1);
+  const { cartItems, clearCart, removeFromCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [upiId, setUpiId] = useState('');
   const [paymentProof, setPaymentProof] = useState(null);
@@ -37,7 +36,7 @@ const Checkout = ({ user }) => {
   const navigate = useNavigate();
 
   const total = cartItems.reduce(
-    (sum, item) => sum + item.price * (item.quantity || 1),
+    (sum, item) => sum + (item.total || (item.price * (item.rentDays || 1)) * (item.quantity || 1)),
     0
   );
 
@@ -53,15 +52,22 @@ const Checkout = ({ user }) => {
     if (cartItems.length === 0) return setError('Your cart is empty.');
 
     setLoading(true);
+    setUploading(paymentMethod === 'upi');
     try {
       let paymentProofURL = '';
       if (paymentMethod === 'upi' && paymentProof) {
-        const storageRef = ref(
-          storage,
-          `payments/${user.uid}_${Date.now()}_${paymentProof.name}`
-        );
-        const snapshot = await uploadBytes(storageRef, paymentProof);
-        paymentProofURL = await getDownloadURL(snapshot.ref);
+        // Upload to Cloudinary
+        const formData = new FormData();
+        formData.append('file', paymentProof);
+        formData.append('upload_preset', 'camera_rental');
+        const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dnqxxqemt/image/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await cloudRes.json();
+        if (!data.secure_url) throw new Error('Failed to upload screenshot.');
+        paymentProofURL = data.secure_url;
+        setCloudUrl(data.secure_url);
       }
 
       for (const item of cartItems) {
@@ -70,7 +76,7 @@ const Checkout = ({ user }) => {
           cameraName: item.name,
           userId: user.uid,
           userEmail: user.email,
-          rentDays,
+          rentDays: item.rentDays,
           paymentMethod,
           upiId: paymentMethod === 'upi' ? upiId : '',
           paymentProofURL: paymentMethod === 'upi' ? paymentProofURL : '',
@@ -87,40 +93,11 @@ const Checkout = ({ user }) => {
       setTimeout(() => navigate('/featured'), 2000);
     } catch (err) {
       console.error(err);
-      setError('Failed to place order.');
+      setError('Failed to place order. ' + (err.message || ''));
     }
     setLoading(false);
-  };
-
-  const handleRentDaysChange = (e) => {
-    const value = parseInt(e.target.value);
-    if (!isNaN(value) && value >= 1) {
-      setRentDays(value);
-    } else if (e.target.value === '') {
-      setRentDays('');
-    }
-  };
-
-  async function uploadGpayImgToCloudinary() {
-    setUploading(true);
-    try {
-      const response = await fetch(GpayImg);
-      const blob = await response.blob();
-      const formData = new FormData();
-      formData.append('file', blob, 'gpay.png');
-      formData.append('upload_preset', 'camera_rental');
-      const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dnqxxqemt/image/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await cloudRes.json();
-      setCloudUrl(data.secure_url);
-      alert('Uploaded to Cloudinary! URL: ' + data.secure_url);
-    } catch (err) {
-      alert('Upload failed: ' + err.message);
-    }
     setUploading(false);
-  }
+  };
 
   return loading ? (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
@@ -134,11 +111,23 @@ const Checkout = ({ user }) => {
         </Typography>
 
         {cartItems.map((item) => (
-          <Box key={item.id} sx={{ mb: 2, p: 2, border: '1px solid #ccc', borderRadius: 2 }}>
+          <Box key={item.id} sx={{ mb: 2, p: 2, border: '1px solid #ccc', borderRadius: 2, position: 'relative' }}>
             <Typography fontWeight={700}>{item.name}</Typography>
             <Typography>
-              ₹{item.price} × {item.quantity || 1}
+              ₹{item.price} × {item.rentDays || 1} day{(item.rentDays || 1) > 1 ? 's' : ''}
             </Typography>
+            <Typography fontWeight={600} color="primary.main">
+              Total: ₹{item.total || item.price * (item.rentDays || 1)}
+            </Typography>
+            <Button
+              variant="outlined"
+              color="error"
+              size="small"
+              sx={{ position: 'absolute', top: 8, right: 8 }}
+              onClick={() => removeFromCart(item)}
+            >
+              Remove
+            </Button>
           </Box>
         ))}
 
@@ -148,7 +137,6 @@ const Checkout = ({ user }) => {
         <TextField fullWidth label="Name" value={name} onChange={(e) => setName(e.target.value)} sx={{ mt: 2 }} />
         <TextField fullWidth label="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} sx={{ mt: 2 }} placeholder="Enter your 10-digit number" />
         <TextField fullWidth label="Address" value={address} onChange={(e) => setAddress(e.target.value)} sx={{ mt: 2 }} multiline rows={3} />
-        <TextField fullWidth label="Rental Duration (days)" type="number" value={rentDays} onChange={handleRentDaysChange} sx={{ mt: 2 }} inputProps={{ min: 1 }} />
 
         {/* Payment Method */}
         <FormControl component="fieldset" sx={{ mt: 2 }}>
@@ -158,45 +146,30 @@ const Checkout = ({ user }) => {
             <FormControlLabel value="upi" control={<Radio />} label="Pay using UPI" />
           </RadioGroup>
         </FormControl>
-{paymentMethod === 'upi' && (
-  <>
-    <Box sx={{ mt: 2, textAlign: 'center' }}>
-      <Typography variant="subtitle1" gutterBottom>
-        Scan the QR Code to Pay
-      </Typography>
-      <img
-        src={GpayImg}
-        alt="UPI QR Code"
-        style={{ width: '200px', height: '200px', borderRadius: '8px' }}
-      />
-    </Box>
 
-    <Button
-      variant="contained"
-      color="primary"
-      sx={{ mt: 2 }}
-      onClick={uploadGpayImgToCloudinary}
-      disabled={uploading}
-    >
-      Upload Screenshot of Payment
-    </Button>
-
-    {cloudUrl && (
-      <Typography sx={{ mt: 2 }} color="success.main">Cloudinary URL: {cloudUrl}</Typography>
-    )}
-
-    <TextField
-      fullWidth
-      type="file"
-      label="Upload Payment Screenshot"
-      InputLabelProps={{ shrink: true }}
-      inputProps={{ accept: 'image/*' }}
-      onChange={(e) => setPaymentProof(e.target.files[0])}
-      sx={{ mt: 2 }}
-    />
-  </>
-)}
-
+        {paymentMethod === 'upi' && (
+          <>
+            <Box sx={{ mt: 2, textAlign: 'center' }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Scan the QR Code to Pay
+              </Typography>
+              <img
+                src={GpayImg}
+                alt="UPI QR Code"
+                style={{ width: '200px', height: '200px', borderRadius: '8px' }}
+              />
+            </Box>
+            <TextField
+              fullWidth
+              type="file"
+              label="Upload Payment Screenshot"
+              InputLabelProps={{ shrink: true }}
+              inputProps={{ accept: 'image/*' }}
+              onChange={(e) => setPaymentProof(e.target.files[0])}
+              sx={{ mt: 2 }}
+            />
+          </>
+        )}
 
         {/* Alerts */}
         {success && <Alert severity="success" sx={{ mt: 2 }}>{success}</Alert>}
