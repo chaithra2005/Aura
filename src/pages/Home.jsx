@@ -56,9 +56,14 @@ const Home = ({ user }) => {
             color="secondary"
             size="large"
             sx={{ mt: 2, fontWeight: 600 }}
-            onClick={handleNav.bind(null, '/featured')}
+            onClick={() => {
+              const section = document.getElementById('services-section');
+              if (section) {
+                section.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
           >
-            Browse Cameras
+            Browse Services
           </Button>
         </Box>
         {/* Decorative Image Section (hidden on mobile) */}

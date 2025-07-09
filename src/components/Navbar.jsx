@@ -6,6 +6,8 @@ import { auth, db } from '../firebase';
 import { styled, alpha } from '@mui/material/styles';
 import { collection, getDocs } from 'firebase/firestore';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Collapse from '@mui/material/Collapse';
 
 const navLinks = [
   { label: 'Home', to: '/' },
@@ -57,6 +59,8 @@ const Navbar = ({ user }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
+  const [servicesAnchorEl, setServicesAnchorEl] = useState(null);
+  const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -109,6 +113,13 @@ const Navbar = ({ user }) => {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleServicesMenuOpen = (event) => {
+    setServicesAnchorEl(event.currentTarget);
+  };
+  const handleServicesMenuClose = () => {
+    setServicesAnchorEl(null);
   };
 
   const handleLogout = async () => {
@@ -197,10 +208,30 @@ const Navbar = ({ user }) => {
                 {link.label}
               </Typography>
             ))}
-            {/* Cart Icon */}
-            <IconButton color="inherit" onClick={() => navigate('/cart')} sx={{ ml: 1 }}>
-              <ShoppingCartIcon />
-            </IconButton>
+            {/* Our Services Dropdown */}
+            <Button
+              aria-controls="services-menu"
+              aria-haspopup="true"
+              onClick={handleServicesMenuOpen}
+              endIcon={<ExpandMoreIcon />}
+              className="navbar-link"
+              sx={{ fontWeight: 800, fontSize: '1rem', color: 'inherit', textTransform: 'none' }}
+            >
+              Our Services
+            </Button>
+            <Menu
+              id="services-menu"
+              anchorEl={servicesAnchorEl}
+              keepMounted
+              open={Boolean(servicesAnchorEl)}
+              onClose={handleServicesMenuClose}
+            >
+              <MenuItem component={RouterLink} to="/featured" onClick={handleServicesMenuClose}>Cameras</MenuItem>
+              <MenuItem component={RouterLink} to="/accessories" onClick={handleServicesMenuClose}>Accessories</MenuItem>
+              <MenuItem component={RouterLink} to="/freelancers" onClick={handleServicesMenuClose}>Freelancers</MenuItem>
+              <MenuItem component={RouterLink} to="/packages" onClick={handleServicesMenuClose}>Photo/Video Shoot Packages</MenuItem>
+            </Menu>
+            {/* User/Account Buttons */}
             {user && (
               <>
                 <Button
@@ -209,6 +240,7 @@ const Navbar = ({ user }) => {
                   onClick={handleMenuOpen}
                   className={`navbar-link${location.pathname.startsWith('/add-') ? ' active' : ''}`}
                   sx={{ fontWeight: 800, fontSize: '1rem', color: 'inherit', textTransform: 'none' }}
+                  endIcon={<ExpandMoreIcon />}
                 >
                   Add Service
                 </Button>
@@ -237,19 +269,23 @@ const Navbar = ({ user }) => {
               </Typography>
             )}
             {user ? (
-              <Button color="inherit" onClick={handleLogout} sx={{ fontWeight: 800, ml: 2 }}>
+              <Button color="inherit" onClick={handleLogout} className="navbar-link" sx={{ fontWeight: 800, ml: 2 }}>
                 Logout
               </Button>
             ) : (
               <>
-                <Button component={RouterLink} to="/login" color="inherit" sx={{ fontWeight: 800, ml: 2 }}>
+                <Button component={RouterLink} to="/login" color="inherit" className="navbar-link" sx={{ fontWeight: 800, ml: 2 }}>
                   Login
                 </Button>
-                <Button component={RouterLink} to="/signup" color="inherit" sx={{ fontWeight: 800, ml: 1 }}>
+                <Button component={RouterLink} to="/signup" color="inherit" className="navbar-link" sx={{ fontWeight: 800, ml: 1 }}>
                   Sign Up
                 </Button>
               </>
             )}
+            {/* Cart Icon at the end */}
+            <IconButton color="inherit" onClick={() => navigate('/cart')} className="navbar-link" sx={{ ml: 1 }}>
+              <ShoppingCartIcon />
+            </IconButton>
           </Box>
           {/* Hamburger Icon for Mobile */}
           <IconButton
@@ -326,6 +362,27 @@ const Navbar = ({ user }) => {
               <ListItemText primary={link.label} primaryTypographyProps={{ fontWeight: 800 }} />
             </ListItem>
           ))}
+          {/* Our Services for Mobile */}
+          <ListItem button onClick={() => setMobileServicesOpen((prev) => !prev)}>
+            <ListItemText primary="Our Services" primaryTypographyProps={{ fontWeight: 800 }} />
+            <ExpandMoreIcon sx={{ transform: mobileServicesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s' }} />
+          </ListItem>
+          <Collapse in={mobileServicesOpen} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              <ListItem button component={RouterLink} to="/featured" onClick={handleDrawerToggle} sx={{ pl: 4 }}>
+                <ListItemText primary="Cameras" />
+              </ListItem>
+              <ListItem button component={RouterLink} to="/accessories" onClick={handleDrawerToggle} sx={{ pl: 4 }}>
+                <ListItemText primary="Accessories" />
+              </ListItem>
+              <ListItem button component={RouterLink} to="/freelancers" onClick={handleDrawerToggle} sx={{ pl: 4 }}>
+                <ListItemText primary="Freelancers" />
+              </ListItem>
+              <ListItem button component={RouterLink} to="/packages" onClick={handleDrawerToggle} sx={{ pl: 4 }}>
+                <ListItemText primary="Photo/Video Shoot Packages" />
+              </ListItem>
+            </List>
+          </Collapse>
           {user && (
             <>
               <ListItem button onClick={handleMenuOpen}>
