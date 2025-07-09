@@ -140,7 +140,7 @@ const Home = ({ user }) => {
             <div style={{ flex: 1, minWidth: 220, marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ marginRight: 8, color: '#333', fontSize: 18 }}>📷</span>
-                <span style={{ fontWeight: 800, fontSize: 20 }}>Chaithra</span>
+                <span style={{ fontWeight: 800, fontSize: 20 }}>Aperture Aura </span>
               </div>
               <div style={{ color: '#666', fontSize: 14 }}>
                 Capture your perfect moment with our high-quality equipment.
@@ -148,7 +148,7 @@ const Home = ({ user }) => {
             </div>
             <div style={{ flex: 1, minWidth: 180, marginBottom: 24 }}>
               <div style={{ fontWeight: 700, marginBottom: 8 }}>Quick Links</div>
-              <div><a href="#" style={{ color: '#333', textDecoration: 'none', display: 'block', marginBottom: 4 }}>Camera Collection</a></div>
+
               <div><a href="#" style={{ color: '#333', textDecoration: 'none', display: 'block', marginBottom: 4 }}>Rental Terms</a></div>
    
             </div>
@@ -161,7 +161,7 @@ const Home = ({ user }) => {
             </div>
           </div>
           <div style={{ textAlign: 'center', color: '#999', fontSize: 13, marginTop: 32 }}>
-            © 2025 Chaithra. All rights reserved.
+            © 2025 Aperture Aura. All rights reserved.
           </div>
         </div>
       </section>
