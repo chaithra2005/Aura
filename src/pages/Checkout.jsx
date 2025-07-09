@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db, storage } from '../firebase';
+import { db } from '../firebase';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import GpayImg from '../assets/gpay.jpg';
 import {
   Box,
   Paper,
@@ -19,6 +17,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useCart } from '../CartContext';
+import QRCode from 'react-qr-code'; // ✅ New working import
 
 const Checkout = ({ user }) => {
   const { cartItems, clearCart, removeFromCart } = useCart();
@@ -36,9 +35,17 @@ const Checkout = ({ user }) => {
   const navigate = useNavigate();
 
   const total = cartItems.reduce(
-    (sum, item) => sum + (item.total || (item.price * (item.rentDays || 1)) * (item.quantity || 1)),
+    (sum, item) =>
+      sum + (item.total || item.price * (item.rentDays || 1) * (item.quantity || 1)),
     0
-  );
+  ); 
+
+  const merchantUpiId = 'jitheshdas08@oksbi'; // 🔁 Replace with your real UPI ID
+  const merchantName = 'CameraRental';
+  const upiUrl =
+    total > 0
+      ? `upi://pay?pa=${merchantUpiId}&pn=${merchantName}&am=${total}&cu=INR`
+      : '';
 
   const handleOrder = async () => {
     setError('');
@@ -53,17 +60,20 @@ const Checkout = ({ user }) => {
 
     setLoading(true);
     setUploading(paymentMethod === 'upi');
+
     try {
       let paymentProofURL = '';
       if (paymentMethod === 'upi' && paymentProof) {
-        // Upload to Cloudinary
         const formData = new FormData();
         formData.append('file', paymentProof);
         formData.append('upload_preset', 'camera_rental');
-        const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dnqxxqemt/image/upload', {
-          method: 'POST',
-          body: formData,
-        });
+        const cloudRes = await fetch(
+          'https://api.cloudinary.com/v1_1/dnqxxqemt/image/upload',
+          {
+            method: 'POST',
+            body: formData,
+          }
+        );
         const data = await cloudRes.json();
         if (!data.secure_url) throw new Error('Failed to upload screenshot.');
         paymentProofURL = data.secure_url;
@@ -76,7 +86,7 @@ const Checkout = ({ user }) => {
           cameraName: item.name,
           userId: user.uid,
           userEmail: user.email,
-          rentDays: item.rentDays,
+          rentDays: item.rentDays ||1,
           paymentMethod,
           upiId: paymentMethod === 'upi' ? upiId : '',
           paymentProofURL: paymentMethod === 'upi' ? paymentProofURL : '',
@@ -95,12 +105,20 @@ const Checkout = ({ user }) => {
       console.error(err);
       setError('Failed to place order. ' + (err.message || ''));
     }
+
     setLoading(false);
     setUploading(false);
   };
 
   return loading ? (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '60vh',
+      }}
+    >
       <CircularProgress />
     </Box>
   ) : (
@@ -111,10 +129,20 @@ const Checkout = ({ user }) => {
         </Typography>
 
         {cartItems.map((item) => (
-          <Box key={item.id} sx={{ mb: 2, p: 2, border: '1px solid #ccc', borderRadius: 2, position: 'relative' }}>
+          <Box
+            key={item.id}
+            sx={{
+              mb: 2,
+              p: 2,
+              border: '1px solid #ccc',
+              borderRadius: 2,
+              position: 'relative',
+            }}
+          >
             <Typography fontWeight={700}>{item.name}</Typography>
             <Typography>
-              ₹{item.price} × {item.rentDays || 1} day{(item.rentDays || 1) > 1 ? 's' : ''}
+              ₹{item.price} × {item.rentDays || 1} day
+              {(item.rentDays || 1) > 1 ? 's' : ''}
             </Typography>
             <Typography fontWeight={600} color="primary.main">
               Total: ₹{item.total || item.price * (item.rentDays || 1)}
@@ -131,19 +159,54 @@ const Checkout = ({ user }) => {
           </Box>
         ))}
 
-        <Typography variant="h6" mt={2}>Total: ₹{total}</Typography>
+        <Typography variant="h6" mt={2}>
+          Total: ₹{total}
+        </Typography>
 
         {/* Customer Info */}
-        <TextField fullWidth label="Name" value={name} onChange={(e) => setName(e.target.value)} sx={{ mt: 2 }} />
-        <TextField fullWidth label="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} sx={{ mt: 2 }} placeholder="Enter your 10-digit number" />
-        <TextField fullWidth label="Address" value={address} onChange={(e) => setAddress(e.target.value)} sx={{ mt: 2 }} multiline rows={3} />
+        <TextField
+          fullWidth
+          label="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          sx={{ mt: 2 }}
+        />
+        <TextField
+          fullWidth
+          label="Phone Number"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          sx={{ mt: 2 }}
+          placeholder="Enter your 10-digit number"
+        />
+        <TextField
+          fullWidth
+          label="Address"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          sx={{ mt: 2 }}
+          multiline
+          rows={3}
+        />
 
         {/* Payment Method */}
         <FormControl component="fieldset" sx={{ mt: 2 }}>
           <FormLabel>Payment Method</FormLabel>
-          <RadioGroup row value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-            <FormControlLabel value="cod" control={<Radio />} label="Cash on Delivery" />
-            <FormControlLabel value="upi" control={<Radio />} label="Pay using UPI" />
+          <RadioGroup
+            row
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value)}
+          >
+            <FormControlLabel
+              value="cod"
+              control={<Radio />}
+              label="Cash on Delivery"
+            />
+            <FormControlLabel
+              value="upi"
+              control={<Radio />}
+              label="Pay using UPI"
+            />
           </RadioGroup>
         </FormControl>
 
@@ -151,14 +214,20 @@ const Checkout = ({ user }) => {
           <>
             <Box sx={{ mt: 2, textAlign: 'center' }}>
               <Typography variant="subtitle1" gutterBottom>
-                Scan the QR Code to Pay
+                Scan the QR Code to Pay ₹{total}
               </Typography>
-              <img
-                src={GpayImg}
-                alt="UPI QR Code"
-                style={{ width: '200px', height: '200px', borderRadius: '8px' }}
-              />
+              {upiUrl && (
+                <Box sx={{ display: 'inline-block', bgcolor: 'white', p: 2 }}>
+                  <QRCode value={upiUrl} />
+                </Box>
+              )}
+              <Typography variant="body2" mt={1}>
+                UPI ID: {merchantUpiId}
+              </Typography>
             </Box>
+
+            
+
             <TextField
               fullWidth
               type="file"
@@ -172,8 +241,16 @@ const Checkout = ({ user }) => {
         )}
 
         {/* Alerts */}
-        {success && <Alert severity="success" sx={{ mt: 2 }}>{success}</Alert>}
-        {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+        {success && (
+          <Alert severity="success" sx={{ mt: 2 }}>
+            {success}
+          </Alert>
+        )}
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
 
         <Button
           variant="contained"
