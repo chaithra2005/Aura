@@ -140,7 +140,7 @@ const Home = ({ user }) => {
             <div style={{ flex: 1, minWidth: 220, marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ marginRight: 8, color: '#333', fontSize: 18 }}>📷</span>
-                <span style={{ fontWeight: 800, fontSize: 20 }}>Chaithra </span>
+                <span style={{ fontWeight: 800, fontSize: 20 }}> Aperture Aura</span>
               </div>
               <div style={{ color: '#666', fontSize: 14 }}>
                 Capture your perfect moment with our high-quality equipment.
