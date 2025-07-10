@@ -20,6 +20,7 @@ import AccessoryDetail from './pages/AccessoryDetail';
 import Cart from './pages/Cart';
 import PackageDetail from './pages/PackageDetail';
 import AddPackage from './pages/AddPackage';
+import AboutUs from './pages/AboutUs';
 import './App.css';
 import ScrollToTop from './ScrollToTop';
 
@@ -87,6 +88,7 @@ function App() {
           <Route path="/camera/:id" element={<CameraDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/about" element={<AboutUs />} />
 
           {/* ✅ Checkout Routes */}
           <Route path="/checkout/:cameraId" element={<Checkout user={user} />} />

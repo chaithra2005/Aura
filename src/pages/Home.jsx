@@ -66,22 +66,38 @@ const Home = ({ user }) => {
             Browse Services
           </Button>
         </Box>
-        {/* Decorative Image Section (hidden on mobile) */}
-        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'flex-start', justifyContent: 'flex-end', flex: 1, pl: 6, height: '100%' }}>
-          <img
-            src="/images/fuji analog fixed lens camera how to get film….jpeg"
-            alt="Decorative Fuji Analog Camera"
+        {/* Decorative Logo Section (hidden on mobile) */}
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', justifyContent: 'center', flex: 1, pl: 6, height: '100%' }}>
+          <div
+            className="hero-logo-circle"
             style={{
-              height: '420px',
-              width: 'auto',
-              maxWidth: 380,
-              borderRadius: 16,
+              width: 400,
+              height: 400,
+              borderRadius: '50%',
+              overflow: 'hidden',
               boxShadow: '0 8px 32px 0 rgba(51,51,51,0.10)',
-              objectFit: 'cover',
-              objectPosition: 'top',
-              display: 'block',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#fff',
+              border: '6px solid #d7ccc8',
+              transition: 'transform 0.35s cubic-bezier(.4,2,.6,1), box-shadow 0.35s cubic-bezier(.4,2,.6,1)',
+              cursor: 'pointer',
             }}
-          />
+            onClick={() => navigate('/about')}
+          >
+            <img
+              src="/logo.jpg"
+              alt="Aperture Aura Logo"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center',
+                display: 'block',
+              }}
+            />
+          </div>
         </Box>
       </Box>
       <section id="services-section" className="services" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '2.5rem', margin: 0, paddingLeft: '16px', paddingRight: '16px' }}>
