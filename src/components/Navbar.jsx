@@ -215,7 +215,17 @@ const Navbar = ({ user }) => {
               onClick={handleServicesMenuOpen}
               endIcon={<ExpandMoreIcon />}
               className="navbar-link"
-              sx={{ fontWeight: 800, fontSize: '1rem', color: 'inherit', textTransform: 'none' }}
+              sx={{
+                fontWeight: 800,
+                fontSize: '1rem',
+                color: 'inherit',
+                textTransform: 'none',
+                border: 'none',
+                boxShadow: 'none',
+                outline: 'none',
+                '&:focus': { border: 'none', boxShadow: 'none', outline: 'none' },
+                '&:active': { border: 'none', boxShadow: 'none', outline: 'none' }
+              }}
             >
               Our Services
             </Button>
@@ -239,7 +249,17 @@ const Navbar = ({ user }) => {
                   aria-haspopup="true"
                   onClick={handleMenuOpen}
                   className={`navbar-link${location.pathname.startsWith('/add-') ? ' active' : ''}`}
-                  sx={{ fontWeight: 800, fontSize: '1rem', color: 'inherit', textTransform: 'none' }}
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    color: 'inherit',
+                    textTransform: 'none',
+                    border: 'none',
+                    boxShadow: 'none',
+                    outline: 'none',
+                    '&:focus': { border: 'none', boxShadow: 'none', outline: 'none' },
+                    '&:active': { border: 'none', boxShadow: 'none', outline: 'none' }
+                  }}
                   endIcon={<ExpandMoreIcon />}
                 >
                   Add Service
