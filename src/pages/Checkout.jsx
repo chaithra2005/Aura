@@ -17,7 +17,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useCart } from '../CartContext';
-import QRCode from 'react-qr-code'; // ✅ New working import
+import QRCode from 'react-qr-code';
 
 const Checkout = ({ user }) => {
   const { cartItems, clearCart, removeFromCart } = useCart();
@@ -34,13 +34,15 @@ const Checkout = ({ user }) => {
   const [cloudUrl, setCloudUrl] = useState('');
   const navigate = useNavigate();
 
+  const isMobile = /Android|iPhone/i.test(navigator.userAgent);
+
   const total = cartItems.reduce(
     (sum, item) =>
       sum + (item.total || item.price * (item.rentDays || 1) * (item.quantity || 1)),
     0
-  ); 
+  );
 
-  const merchantUpiId = 'jitheshdas08@oksbi'; // 🔁 Replace with your real UPI ID
+  const merchantUpiId = 'jitheshdas08@oksbi';
   const merchantName = 'CameraRental';
   const upiUrl =
     total > 0
@@ -86,7 +88,7 @@ const Checkout = ({ user }) => {
           cameraName: item.name,
           userId: user.uid,
           userEmail: user.email,
-          rentDays: item.rentDays ||1,
+          rentDays: item.rentDays || 1,
           paymentMethod,
           upiId: paymentMethod === 'upi' ? upiId : '',
           paymentProofURL: paymentMethod === 'upi' ? paymentProofURL : '',
@@ -210,6 +212,7 @@ const Checkout = ({ user }) => {
           </RadioGroup>
         </FormControl>
 
+        {/* UPI Payment Section */}
         {paymentMethod === 'upi' && (
           <>
             <Box sx={{ mt: 2, textAlign: 'center' }}>
@@ -224,10 +227,25 @@ const Checkout = ({ user }) => {
               <Typography variant="body2" mt={1}>
                 UPI ID: {merchantUpiId}
               </Typography>
+
+              {/* Pay with UPI App Button */}
+              {upiUrl && isMobile && (
+                <Button
+                  variant="contained"
+                  color="success"
+                  sx={{ mt: 2 }}
+                  onClick={() => {
+                    window.location.href = upiUrl;
+                  }}
+                >
+                  Pay with UPI App
+                </Button>
+              )}
             </Box>
 
             
 
+            {/* Upload Screenshot */}
             <TextField
               fullWidth
               type="file"
