@@ -11,6 +11,7 @@ import Collapse from '@mui/material/Collapse';
 
 const navLinks = [
   { label: 'Home', to: '/' },
+  { label: 'About Us', to: '/about' },
 ];
 
 const ADMIN_EMAILS = [

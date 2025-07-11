@@ -52,7 +52,7 @@ const Checkout = ({ user }) => {
     }
 
     const options = {
-      key: 'rzp_test_9gpLmkr3hSpOrL', // Replace with your Razorpay test key
+      key: 'rzp_live_hyjT9nUfMniPJh', // Updated to live Razorpay key
       amount: total * 100,
       currency: 'INR',
       name: 'Camera Rental',

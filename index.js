@@ -2,8 +2,8 @@ const functions = require("firebase-functions");
 const Razorpay = require("razorpay");
 
 const razorpay = new Razorpay({
-  key_id: "rzp_test_9gpLmkr3hSpOrL", // Replace with your test Key ID
-  key_secret: "UsRgQifyZbFTcqXOUD8sK5Q1"   // Replace with your test Key Secret
+  key_id: "rzp_live_hyjT9nUfMniPJh", // Updated to live Key ID
+  key_secret: "rwzk5HWAD4tikNil9yc57VZM"   // Updated to live Key Secret
 });
 
 exports.createOrder = functions.https.onRequest(async (req, res) => {

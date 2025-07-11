@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, useTheme, useMediaQuery, Chip, Avatar } from '@mui/material';
 
 const texts = [
   {
@@ -26,6 +26,13 @@ const texts = [
 
 const team = [
   {
+    name: 'Ashitha',
+    title: 'The Focus Guru',
+    desc: 'Brings everything (and everyone) into focus.',
+    sponsor: true,
+    image: '/ashi.jpg',
+  },
+  {
     name: 'Jithesh',
     title: 'The Aura Chaser',
     desc: 'Can spot the perfect light even in a blackout.',
@@ -46,11 +53,6 @@ const team = [
     desc: 'Rules the frame, one shot at a time.',
   },
   {
-    name: 'Ashitha',
-    title: 'The Focus Guru',
-    desc: 'Brings everything (and everyone) into focus.',
-  },
-  {
     name: 'Yashaswi',
     title: 'The Shutterbug Supreme',
     desc: 'Clicks faster than you can say “cheese”.',
@@ -61,9 +63,10 @@ const AboutUs = () => {
   const [visible, setVisible] = useState([false, false, false, false, false]);
   const [teamVisible, setTeamVisible] = useState(Array(team.length).fill(false));
   const teamRefs = useRef([]);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
-    // Animate in each text block one by one
     texts.forEach((_, i) => {
       setTimeout(() => {
         setVisible((prev) => {
@@ -76,7 +79,6 @@ const AboutUs = () => {
   }, []);
 
   useEffect(() => {
-    // Intersection Observer for team blocks
     const observer = new window.IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -132,52 +134,97 @@ const AboutUs = () => {
           pointerEvents: 'none',
         }}
       />
-      {/* Animated, bold, scattered text blocks */}
-      {texts.map((item, i) => (
-        <Typography
-          key={i}
-          variant="h4"
-          component="div"
+      {/* Animated, bold, scattered text blocks (stacked on mobile) */}
+      {isMobile ? (
+        <Box
           sx={{
-            position: 'absolute',
-            maxWidth: { xs: '90vw', md: 420 },
-            fontWeight: 900,
-            color: '#222',
-            textShadow: '0 2px 16px #fff, 0 1px 8px #0008',
-            letterSpacing: 0.5,
-            fontSize: { xs: 20, sm: 26, md: 32 },
-            opacity: visible[i] ? 1 : 0,
-            transform: visible[i]
-              ? (item.style.transform || 'none')
-              : `translateY(40px) scale(0.98)`,
-            transition:
-              'opacity 1s cubic-bezier(.4,2,.6,1), transform 1s cubic-bezier(.4,2,.6,1)',
+            position: 'relative',
             zIndex: 2,
-            p: 2,
-            borderRadius: 3,
-            background: 'rgba(255,255,255,0.32)',
-            boxShadow: '0 4px 24px 0 rgba(51,51,51,0.10)',
-            ...item.style,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pt: 6,
+            pb: 2,
+            gap: 3,
           }}
         >
-          {item.text}
-        </Typography>
-      ))}
+          {texts.map((item, i) => (
+            <Typography
+              key={i}
+              variant="h6"
+              component="div"
+              sx={{
+                fontWeight: 900,
+                color: '#222',
+                textShadow: '0 2px 16px #fff, 0 1px 8px #0008',
+                letterSpacing: 0.5,
+                fontSize: 17,
+                opacity: visible[i] ? 1 : 0,
+                transform: visible[i] ? 'none' : 'translateY(40px) scale(0.98)',
+                transition:
+                  'opacity 1.2s cubic-bezier(.4,2,.6,1), transform 1.2s cubic-bezier(.4,2,.6,1)',
+                zIndex: 2,
+                p: 1.5,
+                borderRadius: 2,
+                background: 'rgba(255,255,255,0.55)',
+                boxShadow: '0 2px 12px 0 rgba(51,51,51,0.10)',
+                textAlign: 'center',
+                width: '90vw',
+                maxWidth: 400,
+              }}
+            >
+              {item.text}
+            </Typography>
+          ))}
+        </Box>
+      ) : (
+        texts.map((item, i) => (
+          <Typography
+            key={i}
+            variant="h4"
+            component="div"
+            sx={{
+              position: 'absolute',
+              maxWidth: { xs: '90vw', md: 420 },
+              fontWeight: 900,
+              color: '#222',
+              textShadow: '0 2px 16px #fff, 0 1px 8px #0008',
+              letterSpacing: 0.5,
+              fontSize: { xs: 20, sm: 26, md: 32 },
+              opacity: visible[i] ? 1 : 0,
+              transform: visible[i]
+                ? (item.style.transform || 'none')
+                : `translateY(40px) scale(0.98)`,
+              transition:
+                'opacity 1s cubic-bezier(.4,2,.6,1), transform 1s cubic-bezier(.4,2,.6,1)',
+              zIndex: 2,
+              p: 2,
+              borderRadius: 3,
+              background: 'rgba(255,255,255,0.32)',
+              boxShadow: '0 4px 24px 0 rgba(51,51,51,0.10)',
+              ...item.style,
+            }}
+          >
+            {item.text}
+          </Typography>
+        ))
+      )}
       {/* Team Section */}
       <Box
         sx={{
           position: 'relative',
           zIndex: 3,
-          mt: { xs: '60vh', md: '70vh' },
+          mt: { xs: 6, md: '70vh' },
           mb: 8,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: { xs: 4, md: 6 },
+          gap: { xs: 3, md: 6 },
         }}
       >
         <Typography
-          variant="h3"
+          variant={isMobile ? 'h5' : 'h3'}
           fontWeight={900}
           color="primary.main"
           sx={{ mb: 2, textShadow: '0 2px 16px #fff, 0 1px 8px #0008' }}
@@ -196,27 +243,57 @@ const AboutUs = () => {
                 : 'translateY(60px) scale(0.96)',
               transition:
                 'opacity 1.2s cubic-bezier(.4,2,.6,1), transform 1.2s cubic-bezier(.4,2,.6,1)',
-              background: 'rgba(255,255,255,0.38)',
+              background: isMobile ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.38)',
               boxShadow: '0 4px 24px 0 rgba(51,51,51,0.10)',
               borderRadius: 4,
-              px: { xs: 3, md: 6 },
-              py: { xs: 2, md: 3 },
-              minWidth: 260,
+              px: { xs: 2, md: 6 },
+              py: { xs: 1.5, md: 3 },
+              minWidth: 180,
               maxWidth: 480,
               textAlign: 'center',
               fontWeight: 900,
               color: '#222',
               textShadow: '0 2px 16px #fff, 0 1px 8px #0008',
-              fontSize: { xs: 18, md: 24 },
+              fontSize: { xs: 15, md: 24 },
               mb: 1,
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 2,
             }}
           >
-            <Typography variant="h5" fontWeight={900} color="primary" sx={{ mb: 1 }}>
-              {member.name} <span style={{ fontWeight: 700, fontSize: 18 }}>({member.title})</span>
-            </Typography>
-            <Typography variant="body1" fontWeight={700}>
-              {member.desc}
-            </Typography>
+            {member.image && (
+              <Avatar
+                src={member.image}
+                alt={member.name}
+                sx={{ width: 56, height: 56, mr: isMobile ? 0 : 2, mb: isMobile ? 1 : 0, border: '2px solid #ff9800' }}
+              />
+            )}
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant={isMobile ? 'h6' : 'h5'}
+                fontWeight={member.sponsor ? 900 : 700}
+                color={member.sponsor ? 'secondary.main' : 'primary'}
+                sx={{ mb: 1, fontSize: isMobile ? 20 : 26, display: 'inline-block', fontWeight: member.sponsor ? 900 : 700 }}
+              >
+                {member.name}
+                {member.sponsor && (
+                  <Chip
+                    label="Sponsor"
+                    color="secondary"
+                    size="small"
+                    sx={{ ml: 1, fontWeight: 900, fontSize: 12, verticalAlign: 'middle' }}
+                  />
+                )}
+                <span style={{ fontWeight: 700, fontSize: isMobile ? 15 : 18, color: '#333', marginLeft: 8 }}>
+                  ({member.title})
+                </span>
+              </Typography>
+              <Typography variant="body2" fontWeight={700}>
+                {member.desc}
+              </Typography>
+            </Box>
           </Box>
         ))}
       </Box>
