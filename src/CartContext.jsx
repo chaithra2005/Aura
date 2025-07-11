@@ -34,8 +34,18 @@ export function CartProvider({ children }) {
     setCartItems([{ ...item, quantity: 1 }]);
   };
 
+  const updateCartItemDates = (id, type, startDate, endDate) => {
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.id === id && item.type === type
+          ? { ...item, rentStartDate: startDate, rentEndDate: endDate }
+          : item
+      )
+    );
+  };
+
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, clearCart, replaceCartWithItem }}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, clearCart, replaceCartWithItem, updateCartItemDates }}>
       {children}
     </CartContext.Provider>
   );

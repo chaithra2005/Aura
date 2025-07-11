@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import {
   Box, Container, Typography, CircularProgress, Paper, Grid, Button, Chip,
   Accordion, AccordionSummary, AccordionDetails, IconButton,
-  Select, MenuItem, FormControl, InputLabel
+  Select, MenuItem, FormControl, InputLabel, TextField
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import { useCart } from '../CartContext';
+import { DateRange } from 'react-date-range';
+import 'react-date-range/dist/styles.css';
+import 'react-date-range/dist/theme/default.css';
 
 const CameraDetail = () => {
   const { id } = useParams();
@@ -19,6 +22,15 @@ const CameraDetail = () => {
   const [error, setError] = useState('');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [rentDays, setRentDays] = useState(1);
+  const [bookedRanges, setBookedRanges] = useState([]);
+  const [selectedRange, setSelectedRange] = useState([
+    {
+      startDate: null,
+      endDate: null,
+      key: 'selection',
+    },
+  ]);
+  const [dateError, setDateError] = useState('');
   const { addToCart, replaceCartWithItem } = useCart();
   const navigate = useNavigate();
 
@@ -30,9 +42,50 @@ const CameraDetail = () => {
     setActiveImageIndex((prevIndex) => (prevIndex === camera.imageUrls.length - 1 ? 0 : prevIndex + 1));
   };
 
+  function isOverlap(start1, end1, start2, end2) {
+    return (
+      (start1 <= end2 && end1 >= start2)
+    );
+  }
+
+  // Helper to get all disabled dates
+  function getDisabledDates(bookedRanges) {
+    const disabled = [];
+    bookedRanges.forEach(range => {
+      if (!range.start || !range.end) return;
+      let current = new Date(range.start);
+      const end = new Date(range.end);
+      while (current <= end) {
+        disabled.push(new Date(current));
+        current.setDate(current.getDate() + 1);
+      }
+    });
+    return disabled;
+  }
+  const disabledDates = getDisabledDates(bookedRanges);
+
   const handleRentNow = () => {
+    setDateError('');
+    if (!selectedRange[0].startDate || !selectedRange[0].endDate) {
+      setDateError('Please select both start and end dates.');
+      return;
+    }
+    const start = new Date(selectedRange[0].startDate);
+    const end = new Date(selectedRange[0].endDate);
+    if (end < start) {
+      setDateError('End date must be after start date.');
+      return;
+    }
+    // Check for overlap
+    for (const range of bookedRanges) {
+      if (range.start && range.end && isOverlap(start, end, new Date(range.start), new Date(range.end))) {
+        setDateError('Selected dates overlap with an existing booking.');
+        return;
+      }
+    }
+    const rentDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
     const total = camera.price * rentDays;
-    replaceCartWithItem({ ...camera, type: 'camera', rentDays, total });
+    replaceCartWithItem({ ...camera, type: 'camera', rentDays, rentStartDate: selectedRange[0].startDate, rentEndDate: selectedRange[0].endDate, total });
     navigate('/checkout');
   };
 
@@ -60,6 +113,27 @@ const CameraDetail = () => {
     if (id) {
       fetchCamera();
     }
+  }, [id]);
+
+  useEffect(() => {
+    // Fetch booked date ranges for this camera
+    const fetchBookings = async () => {
+      try {
+        const q = query(collection(db, 'rentals'), where('cameraId', '==', id));
+        const snapshot = await getDocs(q);
+        const ranges = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            start: data.rentStartDate,
+            end: data.rentEndDate,
+          };
+        });
+        setBookedRanges(ranges);
+      } catch (err) {
+        setBookedRanges([]);
+      }
+    };
+    if (id) fetchBookings();
   }, [id]);
 
   if (loading) {
@@ -153,6 +227,22 @@ const CameraDetail = () => {
                     ))}
                   </Select>
                 </FormControl>
+                {/* Date pickers for new booking */}
+                <Box sx={{ mb: 2 }}>
+                  <DateRange
+                    editableDateInputs={true}
+                    onChange={item => {
+                      setSelectedRange([item.selection]);
+                      setDateError('');
+                    }}
+                    moveRangeOnFirstSelection={false}
+                    ranges={selectedRange}
+                    minDate={new Date()}
+                    disabledDates={disabledDates}
+                    rangeColors={['#4D96FF']}
+                  />
+                </Box>
+                {dateError && <Typography color="error" sx={{ mb: 2 }}>{dateError}</Typography>}
                 <Button
                   fullWidth
                   variant="contained"
