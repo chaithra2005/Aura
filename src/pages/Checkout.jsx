@@ -110,7 +110,7 @@ const Checkout = ({ user }) => {
 
       clearCart();
       setSuccess('Order placed successfully!');
-      setTimeout(() => navigate('/featured'), 2000);
+      setTimeout(() => navigate('/order-confirmation', { state: { items: cartItems, paymentMethod: paymentDetails.paymentMethod || paymentMethod, total: total } }), 2000);
     } catch (err) {
       console.error(err);
       setError('Failed to place order. ' + (err.message || ''));
@@ -202,22 +202,6 @@ const Checkout = ({ user }) => {
           </RadioGroup>
         </FormControl>
 
-        {paymentMethod === 'upi' && (
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
-            <Button
-              variant="contained"
-              color="success"
-              sx={{ fontWeight: 700, py: 1.5 }}
-              onClick={handleRazorpayPayment}
-            >
-              Pay with UPI (Razorpay)
-            </Button>
-            <Typography variant="body2" mt={2}>
-              You will be redirected to complete your UPI payment securely.
-            </Typography>
-          </Box>
-        )}
-
         {success && (
           <Alert severity="success" sx={{ mt: 2 }}>
             {success}
@@ -233,9 +217,9 @@ const Checkout = ({ user }) => {
           variant="contained"
           fullWidth
           sx={{ mt: 3, fontWeight: 700, py: 1.5 }}
-          onClick={handleOrder}
+          onClick={paymentMethod === 'upi' ? handleRazorpayPayment : handleOrder}
         >
-          Place Order
+          {paymentMethod === 'upi' ? 'Place Order & Pay with UPI' : 'Place Order'}
         </Button>
       </Paper>
     </Box>

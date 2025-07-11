@@ -23,6 +23,7 @@ import AddPackage from './pages/AddPackage';
 import AboutUs from './pages/AboutUs';
 import './App.css';
 import ScrollToTop from './ScrollToTop';
+import OrderConfirmation from './pages/OrderConfirmation';
 
 function PrivateRoute({ children }) {
   const [user, setUser] = useState(undefined);
@@ -93,6 +94,7 @@ function App() {
           {/* ✅ Checkout Routes */}
           <Route path="/checkout/:cameraId" element={<Checkout user={user} />} />
           <Route path="/checkout" element={<Checkout user={user} />} /> {/* This was missing */}
+          <Route path="/order-confirmation" element={<OrderConfirmation />} />
 
           <Route path="/admin" element={<Admin user={user} />} />
           <Route path="/cart" element={<Cart />} />
