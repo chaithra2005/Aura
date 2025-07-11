@@ -17,62 +17,47 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useCart } from '../CartContext';
-import QRCode from 'react-qr-code';
 import loadRazorpayScript from '../utils/loadRazorpay';
 
 const Checkout = ({ user }) => {
   const { cartItems, clearCart, removeFromCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState('cod');
-  const [upiId, setUpiId] = useState('');
-  const [paymentProof, setPaymentProof] = useState(null);
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
+  const [rentStartDate, setRentStartDate] = useState('');
+  const [rentDays, setRentDays] = useState(1);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [cloudUrl, setCloudUrl] = useState('');
   const navigate = useNavigate();
 
-  const isMobile = /Android|iPhone/i.test(navigator.userAgent);
-
   const total = cartItems.reduce(
-    (sum, item) =>
-      sum + (item.total || item.price * (item.rentDays || 1) * (item.quantity || 1)),
+    (sum, item) => sum + (item.price * rentDays * (item.quantity || 1)),
     0
   );
-
-  const merchantUpiId = 'jitheshdas08@oksbi';
-  const merchantName = 'CameraRental';
-  const upiUrl =
-    total > 0
-      ? `upi://pay?pa=${merchantUpiId}&pn=${merchantName}&am=${total}&cu=INR`
-      : '';
 
   const handleRazorpayPayment = async () => {
     setError('');
     setSuccess('');
     if (!user) return setError('You must be logged in to rent items.');
-    if (!name || !phone || !address)
-      return setError('Please fill all customer details.');
+    if (!name || !phone || !address || !rentStartDate || rentDays <= 0)
+      return setError('Please fill all required fields.');
     if (cartItems.length === 0) return setError('Your cart is empty.');
 
     const res = await loadRazorpayScript('https://checkout.razorpay.com/v1/checkout.js');
     if (!res) {
-      setError('Razorpay SDK failed to load. Are you online?');
+      setError('Razorpay SDK failed to load.');
       return;
     }
 
     const options = {
-      key: 'rzp_test_1JNt4Bc4714bcV',
-      amount: total * 100, // in paise
+      key: 'rzp_test_9gpLmkr3hSpOrL', // Replace with your Razorpay test key
+      amount: total * 100,
       currency: 'INR',
       name: 'Camera Rental',
       description: 'Rental Payment',
-      image: '/images/The Canon EOS R5 Mark II sets a new standard for….jpeg', // fallback logo
       handler: function (response) {
-        // On payment success, place the order
         handleOrder({
           paymentId: response.razorpay_payment_id,
           paymentMethod: 'razorpay_upi',
@@ -86,11 +71,9 @@ const Checkout = ({ user }) => {
       },
       method: {
         upi: true,
-        card: false,
-        netbanking: false,
-        wallet: false,
       },
     };
+
     const rzp = new window.Razorpay(options);
     rzp.open();
   };
@@ -100,41 +83,21 @@ const Checkout = ({ user }) => {
     setSuccess('');
 
     if (!user) return setError('You must be logged in to rent items.');
-    if (!name || !phone || !address)
-      return setError('Please fill all customer details.');
-    if (paymentMethod === 'upi' && (!upiId || !paymentProof))
-      return setError('Please enter UPI ID and upload payment screenshot.');
+    if (!name || !phone || !address || !rentStartDate || rentDays <= 0)
+      return setError('Please fill all required fields.');
     if (cartItems.length === 0) return setError('Your cart is empty.');
 
     setLoading(true);
-    setUploading(paymentMethod === 'upi');
 
     try {
-      let paymentProofURL = '';
-      if (paymentMethod === 'upi' && paymentProof) {
-        const formData = new FormData();
-        formData.append('file', paymentProof);
-        formData.append('upload_preset', 'camera_rental');
-        const cloudRes = await fetch(
-          'https://api.cloudinary.com/v1_1/dnqxxqemt/image/upload',
-          {
-            method: 'POST',
-            body: formData,
-          }
-        );
-        const data = await cloudRes.json();
-        if (!data.secure_url) throw new Error('Failed to upload screenshot.');
-        paymentProofURL = data.secure_url;
-        setCloudUrl(data.secure_url);
-      }
-
       for (const item of cartItems) {
         await addDoc(collection(db, 'rentals'), {
           cameraId: item.id,
           cameraName: item.name,
           userId: user.uid,
           userEmail: user.email,
-          rentDays: item.rentDays || 1,
+          rentStartDate,
+          rentDays,
           paymentMethod: paymentDetails.paymentMethod || paymentMethod,
           razorpayPaymentId: paymentDetails.paymentId || '',
           name,
@@ -154,18 +117,10 @@ const Checkout = ({ user }) => {
     }
 
     setLoading(false);
-    setUploading(false);
   };
 
   return loading ? (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '60vh',
-      }}
-    >
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
       <CircularProgress />
     </Box>
   ) : (
@@ -188,11 +143,10 @@ const Checkout = ({ user }) => {
           >
             <Typography fontWeight={700}>{item.name}</Typography>
             <Typography>
-              ₹{item.price} × {item.rentDays || 1} day
-              {(item.rentDays || 1) > 1 ? 's' : ''}
+              ₹{item.price} × {rentDays} day{rentDays > 1 ? 's' : ''}
             </Typography>
             <Typography fontWeight={600} color="primary.main">
-              Total: ₹{item.total || item.price * (item.rentDays || 1)}
+              Total: ₹{item.price * rentDays}
             </Typography>
             <Button
               variant="outlined"
@@ -211,29 +165,28 @@ const Checkout = ({ user }) => {
         </Typography>
 
         {/* Customer Info */}
+        <TextField fullWidth label="Name" value={name} onChange={(e) => setName(e.target.value)} sx={{ mt: 2 }} />
+        <TextField fullWidth label="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} sx={{ mt: 2 }} />
+        <TextField fullWidth label="Address" value={address} onChange={(e) => setAddress(e.target.value)} sx={{ mt: 2 }} multiline rows={3} />
+
+        {/* Rent Date */}
         <TextField
           fullWidth
-          label="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          type="date"
+          label="Start Date"
+          value={rentStartDate}
+          onChange={(e) => setRentStartDate(e.target.value)}
           sx={{ mt: 2 }}
+          InputLabelProps={{ shrink: true }}
         />
         <TextField
           fullWidth
-          label="Phone Number"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          type="number"
+          label="Number of Days"
+          value={rentDays}
+          onChange={(e) => setRentDays(parseInt(e.target.value))}
           sx={{ mt: 2 }}
-          placeholder="Enter your 10-digit number"
-        />
-        <TextField
-          fullWidth
-          label="Address"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          sx={{ mt: 2 }}
-          multiline
-          rows={3}
+          inputProps={{ min: 1 }}
         />
 
         {/* Payment Method */}
@@ -244,26 +197,17 @@ const Checkout = ({ user }) => {
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value)}
           >
-            <FormControlLabel
-              value="cod"
-              control={<Radio />}
-              label="Cash on Delivery"
-            />
-            <FormControlLabel
-              value="upi"
-              control={<Radio />}
-              label="Pay using UPI"
-            />
+            <FormControlLabel value="cod" control={<Radio />} label="Cash on Delivery" />
+            <FormControlLabel value="upi" control={<Radio />} label="Pay using UPI (Razorpay)" />
           </RadioGroup>
         </FormControl>
 
-        {/* UPI Payment Section */}
         {paymentMethod === 'upi' && (
           <Box sx={{ mt: 2, textAlign: 'center' }}>
             <Button
               variant="contained"
               color="success"
-              sx={{ mt: 2, fontWeight: 700, py: 1.5 }}
+              sx={{ fontWeight: 700, py: 1.5 }}
               onClick={handleRazorpayPayment}
             >
               Pay with UPI (Razorpay)
@@ -274,7 +218,6 @@ const Checkout = ({ user }) => {
           </Box>
         )}
 
-        {/* Alerts */}
         {success && (
           <Alert severity="success" sx={{ mt: 2 }}>
             {success}

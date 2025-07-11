@@ -16,7 +16,8 @@ import {
 } from '@mui/material';
 
 const ADMIN_EMAILS = [
-  'deekshithsk24@gmail.com', // Add other admin emails if needed
+  'deekshithsk24@gmail.com',
+   // Add other admin emails if needed
 ];
 
 const Admin = ({ user }) => {
@@ -70,16 +71,17 @@ const Admin = ({ user }) => {
         <TableContainer>
           <Table>
             <TableHead>
-              <TableRow>
+              <TableRow>ss 
                 <TableCell><strong>Camera</strong></TableCell>
                 <TableCell><strong>User Email</strong></TableCell>
                 <TableCell><strong>Name</strong></TableCell>
                 <TableCell><strong>Phone</strong></TableCell>
                 <TableCell><strong>Address</strong></TableCell>
+                <TableCell><strong>Start Date</strong></TableCell>
                 <TableCell><strong>Rental Days</strong></TableCell>
                 <TableCell><strong>Rented At</strong></TableCell>
                 <TableCell><strong>Payment</strong></TableCell>
-                <TableCell><strong>UPI ID</strong></TableCell>
+            
               </TableRow>
             </TableHead>
             <TableBody>
@@ -90,6 +92,11 @@ const Admin = ({ user }) => {
                   <TableCell>{rental.name || '-'}</TableCell>
                   <TableCell>{rental.phone || '-'}</TableCell>
                   <TableCell>{rental.address || '-'}</TableCell>
+                  <TableCell>
+                    {rental.rentStartDate?.toDate
+                      ? rental.rentStartDate.toDate().toLocaleDateString()
+                      : rental.rentStartDate || '-'}
+                  </TableCell>
                   <TableCell>{rental.rentDays || '-'}</TableCell>
                   <TableCell>
                     {rental.rentedAt?.toDate
@@ -101,7 +108,7 @@ const Admin = ({ user }) => {
                       ? 'UPI'
                       : rental.paymentMethod === 'cod'
                       ? 'Cash on Delivery'
-                      : '-'}
+                      : rental.paymentMethod || '-'}
                   </TableCell>
                   <TableCell>
                     {rental.paymentMethod === 'upi' ? rental.upiId || '-' : '-'}

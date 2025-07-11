@@ -17,6 +17,7 @@
     "@tiptap/react": "^2.22.3",
     "@tiptap/starter-kit": "^2.22.3",
     "firebase": "^11.9.1",
+    "razorpay": "^2.9.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-dropzone": "^14.3.8",
