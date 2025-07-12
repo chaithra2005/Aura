@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import {
   Box,
   Paper,
@@ -12,11 +12,32 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Alert
+  Alert,
+  Chip,
+  Card,
+  CardContent,
+  Grid,
+  Divider,
+  IconButton,
+  Tooltip,
+  Badge
 } from '@mui/material';
+import {
+  LocationOn,
+  Phone,
+  Email,
+  CalendarToday,
+  Payment,
+  Person,
+  CameraAlt,
+  AccessTime,
+  Receipt,
+  Map
+} from '@mui/icons-material';
 
 const ADMIN_EMAILS = [
   'deekshithsk24@gmail.com',
+  'jitheshdas08@gmail.com',
    // Add other admin emails if needed
 ];
 
@@ -24,17 +45,50 @@ const Admin = ({ user }) => {
   const [rentals, setRentals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    pendingOrders: 0,
+    totalRevenue: 0,
+    codOrders: 0,
+    upiOrders: 0
+  });
 
   useEffect(() => {
     const fetchRentals = async () => {
       setLoading(true);
       try {
-        const querySnapshot = await getDocs(collection(db, 'rentals'));
+        // Fetch rentals ordered by most recent first
+        const q = query(collection(db, 'rentals'), orderBy('rentedAt', 'desc'));
+        const querySnapshot = await getDocs(q);
         const rentalData = querySnapshot.docs.map(docSnap => ({
           id: docSnap.id,
           ...docSnap.data()
         }));
         setRentals(rentalData);
+        
+        // Calculate statistics
+        const totalOrders = rentalData.length;
+        const pendingOrders = rentalData.filter(rental => rental.status === 'pending').length;
+        const codOrders = rentalData.filter(rental => rental.paymentMethod === 'cod').length;
+        const upiOrders = rentalData.filter(rental => rental.paymentMethod === 'upi').length;
+        
+        // Calculate total revenue (assuming each rental has a price)
+        const totalRevenue = rentalData.reduce((sum, rental) => {
+          const startDate = rental.rentStartDate?.toDate ? rental.rentStartDate.toDate() : new Date(rental.rentStartDate);
+          const endDate = rental.rentEndDate?.toDate ? rental.rentEndDate.toDate() : new Date(rental.rentEndDate);
+          const rentDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          // Assuming a base price of 500 per day if not available
+          const dailyPrice = rental.dailyPrice || 500;
+          return sum + (dailyPrice * rentDays);
+        }, 0);
+        
+        setStats({
+          totalOrders,
+          pendingOrders,
+          totalRevenue,
+          codOrders,
+          upiOrders
+        });
       } catch (err) {
         setError('Failed to fetch rentals.');
         console.error(err);
@@ -45,8 +99,25 @@ const Admin = ({ user }) => {
     fetchRentals();
   }, []);
 
+  // Debug logging
+  console.log('Admin page - Current user:', user);
+  console.log('Admin page - User email:', user?.email);
+  console.log('Admin page - Admin emails:', ADMIN_EMAILS);
+  console.log('Admin page - Is admin?', user && ADMIN_EMAILS.includes(user.email));
+
   if (!user || !ADMIN_EMAILS.includes(user.email)) {
-    return <Alert severity="error">Access denied. Admins only.</Alert>;
+    return (
+      <Box sx={{ maxWidth: 600, mx: 'auto', mt: 6, mb: 6 }}>
+        <Alert severity="error">
+          Access denied. Admins only.
+          {user && (
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Current user: {user.email}
+            </Typography>
+          )}
+        </Alert>
+      </Box>
+    );
   }
 
   if (loading) {
@@ -62,62 +133,248 @@ const Admin = ({ user }) => {
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 6, mb: 6 }}>
-      <Paper sx={{ p: 4, borderRadius: 2, boxShadow: 3 }}>
-        <Typography variant="h4" fontWeight={800} gutterBottom>
-          Admin Dashboard
-        </Typography>
+    <Box sx={{ maxWidth: 1400, mx: 'auto', mt: 12, mb: 6, px: 2 }}>
+      <Typography variant="h3" fontWeight={800} gutterBottom sx={{ mb: 4 }}>
+        📊 Admin Dashboard
+      </Typography>
 
+      {/* Statistics Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card sx={{ bgcolor: '#e3f2fd', border: '1px solid #2196f3' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="textSecondary" gutterBottom variant="body2">
+                    Total Orders
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700} color="primary">
+                    {stats.totalOrders}
+                  </Typography>
+                </Box>
+                <Receipt sx={{ fontSize: 40, color: '#2196f3' }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card sx={{ bgcolor: '#fff3e0', border: '1px solid #ff9800' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="textSecondary" gutterBottom variant="body2">
+                    Pending Orders
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700} color="warning.main">
+                    {stats.pendingOrders}
+                  </Typography>
+                </Box>
+                <AccessTime sx={{ fontSize: 40, color: '#ff9800' }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card sx={{ bgcolor: '#e8f5e8', border: '1px solid #4caf50' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="textSecondary" gutterBottom variant="body2">
+                    Total Revenue
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700} color="success.main">
+                    ₹{stats.totalRevenue.toLocaleString()}
+                  </Typography>
+                </Box>
+                <Payment sx={{ fontSize: 40, color: '#4caf50' }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card sx={{ bgcolor: '#f3e5f5', border: '1px solid #9c27b0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="textSecondary" gutterBottom variant="body2">
+                    COD Orders
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700} color="secondary.main">
+                    {stats.codOrders}
+                  </Typography>
+                </Box>
+                <Payment sx={{ fontSize: 40, color: '#9c27b0' }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card sx={{ bgcolor: '#e0f2f1', border: '1px solid #009688' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="textSecondary" gutterBottom variant="body2">
+                    UPI Orders
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700} color="info.main">
+                    {stats.upiOrders}
+                  </Typography>
+                </Box>
+                <Payment sx={{ fontSize: 40, color: '#009688' }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Detailed Orders Table */}
+      <Paper sx={{ borderRadius: 2, boxShadow: 3, overflow: 'hidden' }}>
+        <Box sx={{ p: 3, bgcolor: '#f5f5f5', borderBottom: '1px solid #e0e0e0' }}>
+          <Typography variant="h5" fontWeight={700}>
+            📋 All Rental Orders
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            Complete customer information and order details
+          </Typography>
+        </Box>
+        
         <TableContainer>
           <Table>
             <TableHead>
-              <TableRow>ss 
-                <TableCell><strong>Camera</strong></TableCell>
-                <TableCell><strong>User Email</strong></TableCell>
-                <TableCell><strong>Name</strong></TableCell>
-                <TableCell><strong>Phone</strong></TableCell>
-                <TableCell><strong>Address</strong></TableCell>
-                <TableCell><strong>Start Date</strong></TableCell>
-                <TableCell><strong>Rental Days</strong></TableCell>
-                <TableCell><strong>Rented At</strong></TableCell>
-                <TableCell><strong>Payment</strong></TableCell>
-            
+              <TableRow sx={{ bgcolor: '#fafafa' }}>
+                <TableCell sx={{ fontWeight: 700 }}>📷 Equipment</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>👤 Customer Info</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>📍 Delivery Details</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>📅 Rental Period</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>💳 Payment</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>📊 Status</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {rentals.map((rental) => (
-                <TableRow key={rental.id}>
-                  <TableCell>{rental.cameraName || '-'}</TableCell>
-                  <TableCell>{rental.userEmail || '-'}</TableCell>
-                  <TableCell>{rental.name || '-'}</TableCell>
-                  <TableCell>{rental.phone || '-'}</TableCell>
-                  <TableCell>{rental.address || '-'}</TableCell>
-                  <TableCell>
-                    {rental.rentStartDate?.toDate
-                      ? rental.rentStartDate.toDate().toLocaleDateString()
-                      : rental.rentStartDate || '-'}
-                  </TableCell>
-                  <TableCell>{rental.rentDays || '-'}</TableCell>
-                  <TableCell>
-                    {rental.rentedAt?.toDate
-                      ? rental.rentedAt.toDate().toLocaleString()
-                      : '-'}
-                  </TableCell>
-                  <TableCell>
-                    {rental.paymentMethod === 'upi'
-                      ? 'UPI'
-                      : rental.paymentMethod === 'cod'
-                      ? 'Cash on Delivery'
-                      : rental.paymentMethod || '-'}
-                  </TableCell>
-                  <TableCell>
-                    {rental.paymentMethod === 'upi' ? rental.upiId || '-' : '-'}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {rentals.map((rental) => {
+                const startDate = rental.rentStartDate?.toDate ? rental.rentStartDate.toDate() : new Date(rental.rentStartDate);
+                const endDate = rental.rentEndDate?.toDate ? rental.rentEndDate.toDate() : new Date(rental.rentEndDate);
+                const rentDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                const orderDate = rental.rentedAt?.toDate ? rental.rentedAt.toDate() : new Date(rental.rentedAt);
+                
+                return (
+                  <TableRow key={rental.id} sx={{ '&:hover': { bgcolor: '#f8f9fa' } }}>
+                    {/* Equipment Column */}
+                    <TableCell>
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight={600} color="primary">
+                          {rental.cameraName || 'Camera Equipment'}
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          ID: {rental.cameraId || 'N/A'}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    
+                    {/* Customer Info Column */}
+                    <TableCell>
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                          <Person sx={{ fontSize: 16, mr: 0.5, color: '#666' }} />
+                          <Typography variant="body2" fontWeight={600}>
+                            {rental.name || 'N/A'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                          <Email sx={{ fontSize: 16, mr: 0.5, color: '#666' }} />
+                          <Typography variant="body2" color="textSecondary">
+                            {rental.userEmail || 'N/A'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Phone sx={{ fontSize: 16, mr: 0.5, color: '#666' }} />
+                          <Typography variant="body2" color="textSecondary">
+                            {rental.phone || 'N/A'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    
+                    {/* Delivery Details Column */}
+                    <TableCell>
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                          <LocationOn sx={{ fontSize: 16, mr: 0.5, color: '#666' }} />
+                          <Typography variant="body2" sx={{ maxWidth: 200, wordBreak: 'break-word' }}>
+                            {rental.address || 'N/A'}
+                          </Typography>
+                        </Box>
+                        {rental.coordinates && (
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Map sx={{ fontSize: 16, mr: 0.5, color: '#666' }} />
+                            <Typography variant="caption" color="textSecondary">
+                              📍 GPS: {rental.coordinates.latitude?.toFixed(4)}, {rental.coordinates.longitude?.toFixed(4)}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </TableCell>
+                    
+                    {/* Rental Period Column */}
+                    <TableCell>
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                          <CalendarToday sx={{ fontSize: 16, mr: 0.5, color: '#666' }} />
+                          <Typography variant="body2">
+                            {startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}
+                          </Typography>
+                        </Box>
+                        <Typography variant="caption" color="textSecondary">
+                          {rentDays} day{rentDays > 1 ? 's' : ''} rental
+                        </Typography>
+                        <Typography variant="caption" display="block" color="textSecondary">
+                          Ordered: {orderDate.toLocaleString()}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    
+                    {/* Payment Column */}
+                    <TableCell>
+                      <Box>
+                        <Chip
+                          label={rental.paymentMethod === 'upi' ? 'UPI Payment' : 'Cash on Delivery'}
+                          color={rental.paymentMethod === 'upi' ? 'success' : 'warning'}
+                          size="small"
+                          sx={{ mb: 1 }}
+                        />
+                        {rental.paymentMethod === 'upi' && rental.razorpayPaymentId && (
+                          <Typography variant="caption" display="block" color="textSecondary">
+                            ID: {rental.razorpayPaymentId}
+                          </Typography>
+                        )}
+                      </Box>
+                    </TableCell>
+                    
+                    {/* Status Column */}
+                    <TableCell>
+                      <Chip
+                        label={rental.status === 'pending' ? 'Pending' : 'Completed'}
+                        color={rental.status === 'pending' ? 'warning' : 'success'}
+                        size="small"
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
+        
+        {rentals.length === 0 && (
+          <Box sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="h6" color="textSecondary">
+              No rental orders found
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Orders will appear here once customers place them
+            </Typography>
+          </Box>
+        )}
       </Paper>
     </Box>
   );

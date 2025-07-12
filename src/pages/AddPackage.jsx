@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 
-const AddPackage = () => {
+const AddPackage = ({ user }) => {
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [price, setPrice] = useState('');
@@ -25,6 +25,10 @@ const AddPackage = () => {
     e.preventDefault();
     setError('');
     setSuccess(false);
+    if (!user) {
+      setError('You must be logged in to add a package.');
+      return;
+    }
     if (!title || !details || !price || images.length === 0 || !contactName || !contactEmail || !contactPhone) {
       setError('Please fill all fields and upload at least one image.');
       return;
@@ -57,6 +61,8 @@ const AddPackage = () => {
         contactEmail,
         contactPhone,
         createdAt: Timestamp.now(),
+        userId: user.uid,
+        userEmail: user.email,
       });
       setLoading(false);
       setSuccess(true);

@@ -8,14 +8,16 @@ import { collection, getDocs } from 'firebase/firestore';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Collapse from '@mui/material/Collapse';
+import Avatar from '@mui/material/Avatar';
+import PersonIcon from '@mui/icons-material/Person';
 
 const navLinks = [
   { label: 'Home', to: '/' },
-  { label: 'About Us', to: '/about' },
 ];
 
 const ADMIN_EMAILS = [
-  'deekshithsk24@gmail.com', 
+  'deekshithsk24@gmail.com',
+  'jitheshdas08@gmail.com',
 ];
 
 const SearchBar = styled('div')(({ theme }) => ({
@@ -279,6 +281,15 @@ const Navbar = ({ user }) => {
                 </Menu>
               </>
             )}
+            {/* Debug logging for admin access */}
+            {(() => {
+              console.log('Navbar - Current user:', user);
+              console.log('Navbar - User email:', user?.email);
+              console.log('Navbar - Admin emails:', ADMIN_EMAILS);
+              console.log('Navbar - Should show admin link?', user && ADMIN_EMAILS.includes(user.email));
+              return null;
+            })()}
+            
             {user && ADMIN_EMAILS.includes(user.email) && (
               <Typography
                 component={RouterLink}
@@ -306,6 +317,12 @@ const Navbar = ({ user }) => {
             {/* Cart Icon at the end */}
             <IconButton color="inherit" onClick={() => navigate('/cart')} className="navbar-link" sx={{ ml: 1 }}>
               <ShoppingCartIcon />
+            </IconButton>
+            {/* Profile Icon at the end */}
+            <IconButton color="inherit" onClick={() => navigate('/profile')} className="navbar-link" sx={{ ml: 1 }}>
+              <Avatar sx={{ width: 32, height: 32, bgcolor: '#eee', color: '#888' }}>
+                <PersonIcon />
+              </Avatar>
             </IconButton>
           </Box>
           {/* Hamburger Icon for Mobile */}

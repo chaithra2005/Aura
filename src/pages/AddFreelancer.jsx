@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 
-const AddFreelancer = () => {
+const AddFreelancer = ({ user }) => {
   const [name, setName] = useState('');
   const [service, setService] = useState('');
   const [price, setPrice] = useState('');
@@ -22,6 +22,10 @@ const AddFreelancer = () => {
     e.preventDefault();
     setError('');
     setSuccess(false);
+    if (!user) {
+      setError('You must be logged in to add a freelancer.');
+      return;
+    }
     if (!name || !service || !price || !image) {
       setError('Please fill all fields and upload an image.');
       return;
@@ -52,6 +56,8 @@ const AddFreelancer = () => {
         price: parseFloat(price),
         imageUrl,
         createdAt: Timestamp.now(),
+        userId: user.uid,
+        userEmail: user.email,
       });
 
       setLoading(false);

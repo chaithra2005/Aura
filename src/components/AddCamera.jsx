@@ -85,7 +85,7 @@ const ImageUploader = ({ files, onFilesChange }) => {
   );
 };
 
-const AddCamera = ({ onCameraAdded }) => {
+const AddCamera = ({ onCameraAdded, user }) => {
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
   const [price, setPrice] = useState(0);
@@ -128,6 +128,10 @@ const AddCamera = ({ onCameraAdded }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!user) {
+      setError('You must be logged in to add a camera.');
+      return;
+    }
     if (!name || !price || !company || files.length === 0) {
       setError('Please fill all required fields and upload at least one image.');
       return;
@@ -166,6 +170,8 @@ const AddCamera = ({ onCameraAdded }) => {
         accessories,
         company,
         createdAt: Timestamp.now(),
+        userId: user.uid,
+        userEmail: user.email,
       });
 
       setName('');

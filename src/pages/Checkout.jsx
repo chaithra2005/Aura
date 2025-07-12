@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { addDoc, collection, Timestamp, getDocs, query, where } from 'firebase/firestore';
+import { addDoc, collection, Timestamp, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import {
   Box,
   Paper,
@@ -16,21 +16,25 @@ import {
   FormLabel,
   CircularProgress,
 } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import { useCart } from '../CartContext';
 import loadRazorpayScript from '../utils/loadRazorpay';
-import { DateRange } from 'react-date-range';
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
+import LocationPicker from '../components/LocationPicker';
 
 const Checkout = ({ user }) => {
   const { cartItems, clearCart, removeFromCart, updateCartItemDates } = useCart();
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+  const [coordinates, setCoordinates] = useState(null);
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const navigate = useNavigate();
 
   // Remove local cartDateRanges state
@@ -83,6 +87,33 @@ const Checkout = ({ user }) => {
     }
     fetchAllBookedDates();
   }, [cartItems]);
+
+  // Fetch user profile data on component mount (name and phone only)
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.email) {
+        try {
+          const profileDoc = await getDoc(doc(db, 'profiles', user.email));
+          if (profileDoc.exists()) {
+            const profileData = profileDoc.data();
+            setName(profileData.name || '');
+            setPhone(profileData.phone || '');
+            // Don't auto-fill address from profile
+          }
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+        }
+      }
+      setProfileLoaded(true);
+    };
+    fetchUserProfile();
+  }, [user]);
+
+  // Handle location selection from LocationPicker
+  const handleLocationSelect = (selectedAddress, selectedCoordinates) => {
+    setAddress(selectedAddress);
+    setCoordinates(selectedCoordinates);
+  };
 
   const handleRazorpayPayment = async () => {
     setError('');
@@ -156,6 +187,10 @@ const Checkout = ({ user }) => {
           name,
           phone,
           address,
+          coordinates: coordinates ? {
+            latitude: coordinates.lat,
+            longitude: coordinates.lng
+          } : null,
           rentedAt: Timestamp.now(),
           status: 'pending',
         });
@@ -177,122 +212,190 @@ const Checkout = ({ user }) => {
       <CircularProgress />
     </Box>
   ) : (
-    <Box sx={{ maxWidth: 600, mx: 'auto', mt: 6, mb: 6 }}>
-      <Paper sx={{ p: 4, borderRadius: 2, boxShadow: 3 }}>
-        <Typography variant="h4" fontWeight={800} gutterBottom>
-          Checkout
-        </Typography>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Box sx={{ maxWidth: 600, mx: 'auto', mt: 6, mb: 6 }}>
+        <Paper sx={{ p: 4, borderRadius: 2, boxShadow: 3 }}>
+          <Typography variant="h4" fontWeight={800} gutterBottom>
+            Checkout
+          </Typography>
 
-        {cartItems.map((item) => {
-          const startDate = new Date(item.rentStartDate);
-          const endDate = new Date(item.rentEndDate);
-          const rentDays = (startDate && endDate)
-            ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
-            : 0;
-          console.log('Rendering item:', item, 'startDate:', startDate, 'endDate:', endDate, 'rentDays:', rentDays);
-          return (
-            <Box
-              key={item.id}
-              sx={{
-                mb: 2,
-                p: 2,
-                border: '1px solid #ccc',
-                borderRadius: 2,
-                position: 'relative',
-              }}
-            >
-              <Typography fontWeight={700}>{item.name}</Typography>
-              {item.rentStartDate && item.rentEndDate ? (
-                <Typography>
-                  Rental Period: {startDate.toLocaleDateString()} to {endDate.toLocaleDateString()}
-                </Typography>
-              ) : (
-                <Box sx={{ mt: 1 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Select Rental Period:
-                  </Typography>
-                  <DateRange
-                    ranges={[{
-                      startDate: item.rentStartDate ? new Date(item.rentStartDate) : null,
-                      endDate: item.rentEndDate ? new Date(item.rentEndDate) : null,
-                      key: 'selection',
-                    }]}
-                    onChange={ranges => {
-                      const selection = ranges.selection;
-                      updateCartItemDates(item.id, item.type, selection.startDate, selection.endDate);
-                    }}
-                    minDate={new Date()}
-                    months={1}
-                    direction="horizontal"
-                    rangeColors={['#3399cc']}
-                    className="date-range-picker"
-                    disabledDates={bookedDatesMap[item.id] || []}
-                  />
-                </Box>
-              )}
-              <Typography>
-                ₹{item.price} × {rentDays} day{rentDays > 1 ? 's' : ''}
-              </Typography>
-              <Typography fontWeight={600} color="primary.main">
-                Total: ₹{item.price * rentDays}
-              </Typography>
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                sx={{ position: 'absolute', top: 8, right: 8 }}
-                onClick={() => removeFromCart(item)}
+          {cartItems.map((item) => {
+            const startDate = new Date(item.rentStartDate);
+            const endDate = new Date(item.rentEndDate);
+            const rentDays = (startDate && endDate)
+              ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+              : 0;
+            console.log('Rendering item:', item, 'startDate:', startDate, 'endDate:', endDate, 'rentDays:', rentDays);
+            return (
+              <Box
+                key={item.id}
+                sx={{
+                  mb: 2,
+                  p: 2,
+                  border: '1px solid #ccc',
+                  borderRadius: 2,
+                  position: 'relative',
+                }}
               >
-                Remove
-              </Button>
-            </Box>
-          );
-        })}
+                <Typography fontWeight={700}>{item.name}</Typography>
+                {item.rentStartDate && item.rentEndDate ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                    <Typography>
+                      Rental Period: {startDate.toLocaleDateString()} to {endDate.toLocaleDateString()}
+                    </Typography>
+                    <Button 
+                      variant="outlined" 
+                      size="small" 
+                      onClick={() => {
+                        // Clear the dates to show the date pickers again
+                        updateCartItemDates(item.id, item.type, null, null);
+                      }}
+                      sx={{ 
+                        fontSize: '0.75rem', 
+                        py: 0.5, 
+                        px: 1.5,
+                        minWidth: 'auto'
+                      }}
+                    >
+                      Change Dates
+                    </Button>
+                  </Box>
+                ) : (
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Select Rental Period:
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                      <DatePicker
+                        label="Start Date"
+                        value={item.rentStartDate ? dayjs(item.rentStartDate) : null}
+                        onChange={(newValue) => {
+                          const startDate = newValue ? newValue.format('YYYY-MM-DD') : null;
+                          updateCartItemDates(item.id, item.type, startDate, item.rentEndDate);
+                        }}
+                        minDate={dayjs()}
+                        maxDate={item.rentEndDate ? dayjs(item.rentEndDate) : null}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            sx: { flex: 1 }
+                          }
+                        }}
+                      />
+                      <DatePicker
+                        label="End Date"
+                        value={item.rentEndDate ? dayjs(item.rentEndDate) : null}
+                        onChange={(newValue) => {
+                          const endDate = newValue ? newValue.format('YYYY-MM-DD') : null;
+                          updateCartItemDates(item.id, item.type, item.rentStartDate, endDate);
+                        }}
+                        minDate={item.rentStartDate ? dayjs(item.rentStartDate) : dayjs()}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            sx: { flex: 1 }
+                          }
+                        }}
+                      />
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      💡 Select your start date first, then your end date
+                    </Typography>
+                  </Box>
+                )}
+                <Typography>
+                  ₹{item.price} × {rentDays} day{rentDays > 1 ? 's' : ''}
+                </Typography>
+                <Typography fontWeight={600} color="primary.main">
+                  Total: ₹{item.price * rentDays}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  sx={{ position: 'absolute', top: 8, right: 8 }}
+                  onClick={() => removeFromCart(item)}
+                >
+                  Remove
+                </Button>
+              </Box>
+            );
+          })}
 
-        <Typography variant="h6" mt={2}>
-          Total: ₹{total}
-        </Typography>
+          <Typography variant="h6" mt={2}>
+            Total: ₹{total}
+          </Typography>
 
-        {/* Customer Info */}
-        <TextField fullWidth label="Name" value={name} onChange={(e) => setName(e.target.value)} sx={{ mt: 2 }} />
-        <TextField fullWidth label="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} sx={{ mt: 2 }} />
-        <TextField fullWidth label="Address" value={address} onChange={(e) => setAddress(e.target.value)} sx={{ mt: 2 }} multiline rows={3} />
+          {/* Customer Info */}
+          <Typography variant="h6" sx={{ mt: 3, mb: 2, fontWeight: 600 }}>
+            Customer Information
+          </Typography>
+          <TextField 
+            fullWidth 
+            label="Name" 
+            value={name} 
+            onChange={(e) => setName(e.target.value)} 
+            sx={{ mt: 2 }} 
+            placeholder={profileLoaded && !name ? "Enter your name" : ""}
+          />
+          <TextField 
+            fullWidth 
+            label="Phone Number" 
+            value={phone} 
+            onChange={(e) => setPhone(e.target.value)} 
+            sx={{ mt: 2 }} 
+            placeholder={profileLoaded && !phone ? "Enter your phone number" : ""}
+          />
+          
+          <Typography variant="h6" sx={{ mt: 3, mb: 2, fontWeight: 600 }}>
+            Delivery Address
+          </Typography>
+          <LocationPicker 
+            onLocationSelect={handleLocationSelect}
+            initialAddress={address}
+          />
+          {profileLoaded && (name || phone) && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              💡 Your name and phone number have been auto-filled from your profile. You can edit if needed.
+            </Typography>
+          )}
 
-        {/* Payment Method */}
-        <FormControl component="fieldset" sx={{ mt: 2 }}>
-          <FormLabel>Payment Method</FormLabel>
-          <RadioGroup
-            row
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
+          {/* Payment Method */}
+          <FormControl component="fieldset" sx={{ mt: 2 }}>
+            <FormLabel>Payment Method</FormLabel>
+            <RadioGroup
+              row
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+            >
+              <FormControlLabel value="cod" control={<Radio />} label="Cash on Delivery" />
+              <FormControlLabel value="upi" control={<Radio />} label="Pay using UPI (Razorpay)" />
+            </RadioGroup>
+          </FormControl>
+
+          {success && (
+            <Alert severity="success" sx={{ mt: 2 }}>
+              {success}
+            </Alert>
+          )}
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          <Button
+            variant="contained"
+            fullWidth
+            sx={{ mt: 3, fontWeight: 700, py: 1.5 }}
+            onClick={paymentMethod === 'upi' ? handleRazorpayPayment : handleOrder}
+            disabled={!allDatesSelected}
           >
-            <FormControlLabel value="cod" control={<Radio />} label="Cash on Delivery" />
-            <FormControlLabel value="upi" control={<Radio />} label="Pay using UPI (Razorpay)" />
-          </RadioGroup>
-        </FormControl>
-
-        {success && (
-          <Alert severity="success" sx={{ mt: 2 }}>
-            {success}
-          </Alert>
-        )}
-        {error && (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {error}
-          </Alert>
-        )}
-
-        <Button
-          variant="contained"
-          fullWidth
-          sx={{ mt: 3, fontWeight: 700, py: 1.5 }}
-          onClick={paymentMethod === 'upi' ? handleRazorpayPayment : handleOrder}
-          disabled={!allDatesSelected}
-        >
-          {paymentMethod === 'upi' ? 'Place Order & Pay with UPI' : 'Place Order'}
-        </Button>
-      </Paper>
-    </Box>
+            {paymentMethod === 'upi' ? 'Place Order & Pay with UPI' : 'Place Order'}
+          </Button>
+        </Paper>
+      </Box>
+    </LocalizationProvider>
   );
 };
 

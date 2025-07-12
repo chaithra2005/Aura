@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TextField, Button, Paper, Typography, Box, Alert, Divider } from '@mui/material';
-import { createUserWithEmailAndPassword, signInWithPopup, sendEmailVerification } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, sendEmailVerification } from 'firebase/auth';
 import { auth, provider } from '../firebase';
 import { FcGoogle } from 'react-icons/fc';
 
@@ -12,6 +12,24 @@ const SignUp = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
+
+  // Handle redirect result from Google sign-in
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          // User successfully signed in via redirect
+          navigate('/');
+        }
+      } catch (error) {
+        console.error('Redirect result error:', error);
+        setError('Google sign-up failed. Please try again.');
+      }
+    };
+
+    handleRedirectResult();
+  }, [navigate]);
 
   const handleEmailSignUp = async (e) => {
     e.preventDefault();
@@ -33,12 +51,29 @@ const SignUp = () => {
 
   const handleGoogleSignUp = async () => {
     setError('');
+    setLoading(true);
     try {
-      await signInWithPopup(auth, provider);
-      navigate('/');
+      // Try popup first, fallback to redirect if popup fails
+      try {
+        await signInWithPopup(auth, provider);
+        navigate('/');
+      } catch (popupError) {
+        console.log('Popup failed, trying redirect:', popupError);
+        // If popup fails due to COOP or other issues, use redirect
+        await signInWithRedirect(auth, provider);
+        // Note: With redirect, the page will reload and handle the result
+      }
     } catch (err) {
-      setError(err.message || 'Google sign-up failed');
+      console.error('Google sign-up error:', err);
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('Sign-up was cancelled. Please try again.');
+      } else if (err.code === 'auth/popup-blocked') {
+        setError('Popup was blocked. Please allow popups for this site and try again.');
+      } else {
+        setError('Google sign-up failed. Please try again or use email sign-up.');
+      }
     }
+    setLoading(false);
   };
 
   return (
@@ -86,6 +121,7 @@ const SignUp = () => {
           fullWidth
           startIcon={<FcGoogle size={22} />}
           onClick={handleGoogleSignUp}
+          disabled={loading}
           sx={{
             fontWeight: 600,
             borderColor: '#ccc',
@@ -94,7 +130,7 @@ const SignUp = () => {
             '&:hover': { backgroundColor: '#f5f5f5' }
           }}
         >
-          Sign up with Google
+          {loading ? 'Connecting...' : 'Sign up with Google'}
         </Button>
       </Paper>
     </Box>

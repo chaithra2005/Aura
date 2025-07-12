@@ -170,6 +170,7 @@ const Home = ({ user }) => {
             <div style={{ flex: 1, minWidth: 180, marginBottom: 24 }}>
               <div style={{ fontWeight: 700, marginBottom: 8 }}>Quick Links</div>
 
+              <div><a href="/about" style={{ color: '#333', textDecoration: 'none', display: 'block', marginBottom: 4 }}>About Us</a></div>
               <div><a href="#" style={{ color: '#333', textDecoration: 'none', display: 'block', marginBottom: 4 }}>Rental Terms</a></div>
    
             </div>

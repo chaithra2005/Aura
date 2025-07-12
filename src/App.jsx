@@ -24,6 +24,7 @@ import AboutUs from './pages/AboutUs';
 import './App.css';
 import ScrollToTop from './ScrollToTop';
 import OrderConfirmation from './pages/OrderConfirmation';
+import Profile from './pages/Profile';
 
 function PrivateRoute({ children }) {
   const [user, setUser] = useState(undefined);
@@ -60,7 +61,7 @@ function App() {
             path="/add-camera"
             element={
               <PrivateRoute>
-                <AddCamera onCameraAdded={handleCameraAdded} />
+                <AddCamera onCameraAdded={handleCameraAdded} user={user} />
               </PrivateRoute>
             }
           />
@@ -70,7 +71,7 @@ function App() {
             path="/add-accessory"
             element={
               <PrivateRoute>
-                <AddAccessory />
+                <AddAccessory user={user} />
               </PrivateRoute>
             }
           />
@@ -80,7 +81,7 @@ function App() {
             path="/add-freelancer"
             element={
               <PrivateRoute>
-                <AddFreelancer />
+                <AddFreelancer user={user} />
               </PrivateRoute>
             }
           />
@@ -98,11 +99,12 @@ function App() {
 
           <Route path="/admin" element={<Admin user={user} />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/profile" element={<Profile user={user} />} />
           <Route
             path="/add-package"
             element={
               <PrivateRoute>
-                <AddPackage />
+                <AddPackage user={user} />
               </PrivateRoute>
             }
           />
