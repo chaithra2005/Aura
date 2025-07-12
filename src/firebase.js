@@ -4,6 +4,12 @@ import {
   getAuth,
   onAuthStateChanged,
   GoogleAuthProvider,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
+  sendSignInLinkToEmail,
+  applyActionCode,
+  checkActionCode,
+  reload,
 } from "firebase/auth";
 import { getStorage } from "firebase/storage"; // ✅ Import Firebase Storage
 
@@ -26,4 +32,16 @@ const provider = new GoogleAuthProvider();
 const storage = getStorage(app); // ✅ Initialize Storage
 
 // ✅ Export everything needed
-export { db, auth, provider, onAuthStateChanged, storage };
+export { 
+  db, 
+  auth, 
+  provider, 
+  onAuthStateChanged, 
+  storage,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
+  sendSignInLinkToEmail,
+  applyActionCode,
+  checkActionCode,
+  reload
+};

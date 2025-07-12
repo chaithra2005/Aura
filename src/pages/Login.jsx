@@ -1,15 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TextField, Button, Paper, Typography, Box, Alert, Divider } from '@mui/material';
-import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
+import { sendSignInLinkToEmail } from 'firebase/auth';
 import { auth, provider } from '../firebase';
+import { db } from '../firebase';
+import { doc, setDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { FcGoogle } from 'react-icons/fc';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => {
+    // Prefill email from localStorage if available
+    const prefill = window.localStorage.getItem('loginPrefillEmail');
+    if (prefill) {
+      window.localStorage.removeItem('loginPrefillEmail');
+      return prefill;
+    }
+    return '';
+  });
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState('');
   const navigate = useNavigate();
 
   // Handle redirect result from Google sign-in
@@ -19,6 +32,8 @@ const Login = () => {
         const result = await getRedirectResult(auth);
         if (result) {
           // User successfully signed in via redirect
+          // Update user profile in Firestore
+          await updateUserLogin(result.user);
           navigate('/');
         }
       } catch (error) {
@@ -30,17 +45,87 @@ const Login = () => {
     handleRedirectResult();
   }, [navigate]);
 
+  // Function to update user login activity in Firestore
+  const updateUserLogin = async (user) => {
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await setDoc(userRef, {
+        email: user.email,
+        displayName: user.displayName || '',
+        photoURL: user.photoURL || '',
+        emailVerified: user.emailVerified,
+        lastLogin: Timestamp.now(),
+        provider: user.providerData[0]?.providerId || 'email'
+      }, { merge: true }); // merge: true will update existing document or create new one
+    } catch (error) {
+      console.error('Error updating user login:', error);
+    }
+  };
+
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setResendSuccess('');
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Update user profile in Firestore
+      await updateUserLogin(userCredential.user);
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Login failed');
+      if (err.code === 'auth/user-not-found') {
+        setError('No account found with this email address. Please sign up first.');
+      } else if (err.code === 'auth/wrong-password') {
+        setError('Incorrect password. Please try again.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Too many failed attempts. Please try again later.');
+      } else if (err.code === 'auth/user-disabled') {
+        setError('This account has been disabled. Please contact support.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
+      } else {
+        setError(err.message || 'Login failed');
+      }
     }
     setLoading(false);
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setError('Please enter your email address first.');
+      return;
+    }
+    
+    setResendLoading(true);
+    setError('');
+    setResendSuccess('');
+    
+    try {
+      // Store email in localStorage for email link verification
+      window.localStorage.setItem('emailForSignIn', email);
+      
+      // Send sign-in link to email
+      await sendSignInLinkToEmail(auth, email, {
+        url: window.location.origin + '/verify-email',
+        handleCodeInApp: true,
+      });
+      
+      setResendSuccess('Verification email sent! Please check your inbox.');
+      
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') {
+        setError('No account found with this email address. Please sign up first.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
+      } else {
+        setError('Failed to resend verification email. Please try again.');
+      }
+      
+      // Clean up localStorage on error
+      window.localStorage.removeItem('emailForSignIn');
+    }
+    
+    setResendLoading(false);
   };
 
   const handleGoogleLogin = async () => {
@@ -49,7 +134,9 @@ const Login = () => {
     try {
       // Try popup first, fallback to redirect if popup fails
       try {
-        await signInWithPopup(auth, provider);
+        const result = await signInWithPopup(auth, provider);
+        // Update user profile in Firestore
+        await updateUserLogin(result.user);
         navigate('/');
       } catch (popupError) {
         console.log('Popup failed, trying redirect:', popupError);
@@ -105,6 +192,22 @@ const Login = () => {
           >
             {loading ? 'Logging in...' : 'Login'}
           </Button>
+          {error && error.includes('verify your email') && (
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={handleResendVerification}
+              disabled={resendLoading || !email}
+              sx={{ mt: 1 }}
+            >
+              {resendLoading ? 'Sending...' : 'Resend Verification Email'}
+            </Button>
+          )}
+          {resendSuccess && (
+            <Alert severity="success" sx={{ mt: 2 }}>
+              {resendSuccess}
+            </Alert>
+          )}
         </form>
 
         <Divider sx={{ my: 2 }}>OR</Divider>

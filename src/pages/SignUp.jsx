@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TextField, Button, Paper, Typography, Box, Alert, Divider, Checkbox, FormControlLabel, Link } from '@mui/material';
-import { createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, sendEmailVerification } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, sendEmailVerification, signOut } from 'firebase/auth';
 import { auth, provider } from '../firebase';
+import { db } from '../firebase';
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { FcGoogle } from 'react-icons/fc';
 
 const SignUp = () => {
@@ -12,6 +14,7 @@ const SignUp = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
   const navigate = useNavigate();
 
   // Handle redirect result from Google sign-in
@@ -21,6 +24,8 @@ const SignUp = () => {
         const result = await getRedirectResult(auth);
         if (result) {
           // User successfully signed in via redirect
+          // Store user profile in Firestore
+          await storeUserProfile(result.user);
           navigate('/');
         }
       } catch (error) {
@@ -32,20 +37,63 @@ const SignUp = () => {
     handleRedirectResult();
   }, [navigate]);
 
+  // Function to store user profile in Firestore
+  const storeUserProfile = async (user) => {
+    try {
+      await setDoc(doc(db, 'users', user.uid), {
+        email: user.email,
+        displayName: user.displayName || '',
+        photoURL: user.photoURL || '',
+        createdAt: Timestamp.now(),
+        emailVerified: user.emailVerified,
+        lastLogin: Timestamp.now(),
+        provider: user.providerData[0]?.providerId || 'email'
+      });
+    } catch (error) {
+      console.error('Error storing user profile:', error);
+    }
+  };
+
   const handleEmailSignUp = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     setSuccess('');
     try {
+      // Create user account
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await sendEmailVerification(userCredential.user);
-      setSuccess('Account created! A verification email has been sent. Please check your inbox and verify your email before signing in.');
+      
+      // Store user profile in Firestore
+      await storeUserProfile(userCredential.user);
+      
+      // Store email and password in localStorage for auto-login after verification
+      window.localStorage.setItem('signupEmail', email);
+      window.localStorage.setItem('signupPassword', password);
+      
+      // Send email verification
+      await sendEmailVerification(userCredential.user, {
+        url: window.location.origin + '/verify-email',
+        handleCodeInApp: true,
+      });
+      
+      // Sign out the user immediately after creation
+      await signOut(auth);
+      
+      setVerificationSent(true);
+      setSuccess('Account created! A verification email has been sent to your inbox. Please check your email and click the verification link to complete your registration.');
       setEmail('');
       setPassword('');
-      // Do not navigate yet; wait for user to verify
+      setAcceptedTerms(false);
     } catch (err) {
-      setError(err.message || 'Sign up failed');
+      if (err.code === 'auth/email-already-in-use') {
+        setError('An account with this email already exists. Please try logging in instead.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password should be at least 6 characters long.');
+      } else {
+        setError(err.message || 'Sign up failed');
+      }
     }
     setLoading(false);
   };
@@ -56,7 +104,9 @@ const SignUp = () => {
     try {
       // Try popup first, fallback to redirect if popup fails
       try {
-        await signInWithPopup(auth, provider);
+        const result = await signInWithPopup(auth, provider);
+        // Store user profile in Firestore
+        await storeUserProfile(result.user);
         navigate('/');
       } catch (popupError) {
         console.log('Popup failed, trying redirect:', popupError);
@@ -76,6 +126,38 @@ const SignUp = () => {
     }
     setLoading(false);
   };
+
+  if (verificationSent) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <Paper elevation={3} sx={{ p: 4, width: 400, textAlign: 'center' }}>
+          <Typography variant="h5" mb={3} align="center">Check Your Email</Typography>
+          <Alert severity="success" sx={{ mb: 3 }}>
+            We've sent a verification email to your inbox. Please check your email and click the verification link to complete your registration.
+          </Alert>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Didn't receive the email? Check your spam folder or try signing up again.
+          </Typography>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setVerificationSent(false);
+              setSuccess('');
+            }}
+            sx={{ mr: 2 }}
+          >
+            Try Again
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => navigate('/login')}
+          >
+            Go to Login
+          </Button>
+        </Paper>
+      </Box>
+    );
+  }
 
   return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">

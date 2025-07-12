@@ -26,6 +26,8 @@ import ScrollToTop from './ScrollToTop';
 import OrderConfirmation from './pages/OrderConfirmation';
 import Profile from './pages/Profile';
 import RentalTerms from './pages/RentalTerms';
+import EmailVerification from './pages/EmailVerification';
+import { Box, Paper, Typography, Alert, Button } from '@mui/material';
 
 function PrivateRoute({ children }) {
   const [user, setUser] = useState(undefined);
@@ -93,6 +95,7 @@ function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/rental-terms" element={<RentalTerms />} />
+          <Route path="/verify-email" element={<EmailVerification />} />
 
           {/* ✅ Checkout Routes */}
           <Route path="/checkout/:cameraId" element={<Checkout user={user} />} />
