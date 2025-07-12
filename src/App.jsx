@@ -25,6 +25,7 @@ import './App.css';
 import ScrollToTop from './ScrollToTop';
 import OrderConfirmation from './pages/OrderConfirmation';
 import Profile from './pages/Profile';
+import RentalTerms from './pages/RentalTerms';
 
 function PrivateRoute({ children }) {
   const [user, setUser] = useState(undefined);
@@ -91,6 +92,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/about" element={<AboutUs />} />
+          <Route path="/rental-terms" element={<RentalTerms />} />
 
           {/* ✅ Checkout Routes */}
           <Route path="/checkout/:cameraId" element={<Checkout user={user} />} />
