@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TextField, Button, Paper, Typography, Box, Alert, Divider } from '@mui/material';
+import { TextField, Button, Paper, Typography, Box, Alert, Divider, Checkbox, FormControlLabel, Link } from '@mui/material';
 import { createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, sendEmailVerification } from 'firebase/auth';
 import { auth, provider } from '../firebase';
 import { FcGoogle } from 'react-icons/fc';
@@ -11,6 +11,7 @@ const SignUp = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const navigate = useNavigate();
 
   // Handle redirect result from Google sign-in
@@ -102,13 +103,41 @@ const SignUp = () => {
             margin="normal"
             required
           />
+          <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, mb: 1 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={acceptedTerms}
+                  onChange={e => setAcceptedTerms(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label={
+                <>
+                  I accept the
+                  <Button
+                    variant="text"
+                    size="small"
+                    sx={{ ml: 0.5, textTransform: 'none', fontWeight: 600, color: '#1976d2', p: 0, minWidth: 0 }}
+                    onClick={e => {
+                      e.preventDefault();
+                      navigate('/rental-terms');
+                    }}
+                  >
+                    Read Now
+                  </Button>
+                  Terms and Conditions
+                </>
+              }
+            />
+          </Box>
           <Button
             type="submit"
             variant="contained"
             color="primary"
             fullWidth
-            sx={{ mt: 2 }}
-            disabled={loading}
+            sx={{ mt: 2, backgroundColor: acceptedTerms ? undefined : '#ccc', color: acceptedTerms ? undefined : '#888', boxShadow: 'none' }}
+            disabled={loading || !acceptedTerms}
           >
             {loading ? 'Signing up...' : 'Sign Up'}
           </Button>
@@ -121,13 +150,15 @@ const SignUp = () => {
           fullWidth
           startIcon={<FcGoogle size={22} />}
           onClick={handleGoogleSignUp}
-          disabled={loading}
+          disabled={loading || !acceptedTerms}
           sx={{
             fontWeight: 600,
             borderColor: '#ccc',
             textTransform: 'none',
-            backgroundColor: '#fff',
-            '&:hover': { backgroundColor: '#f5f5f5' }
+            backgroundColor: acceptedTerms ? '#fff' : '#eee',
+            color: acceptedTerms ? undefined : '#888',
+            boxShadow: 'none',
+            '&:hover': { backgroundColor: acceptedTerms ? '#f5f5f5' : '#eee' }
           }}
         >
           {loading ? 'Connecting...' : 'Sign up with Google'}
