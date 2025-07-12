@@ -20,6 +20,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
+import 'dayjs/locale/en-gb';
 import { useCart } from '../CartContext';
 import loadRazorpayScript from '../utils/loadRazorpay';
 import LocationPicker from '../components/LocationPicker';
@@ -67,7 +68,10 @@ const Checkout = ({ user }) => {
           const snapshot = await getDocs(q);
           const bookedRanges = snapshot.docs.map(doc => {
             const data = doc.data();
-            return { start: data.rentStartDate, end: data.rentEndDate };
+            // Handle Firestore Timestamp objects
+            const start = data.rentStartDate?.toDate ? data.rentStartDate.toDate() : new Date(data.rentStartDate);
+            const end = data.rentEndDate?.toDate ? data.rentEndDate.toDate() : new Date(data.rentEndDate);
+            return { start, end };
           });
           // Helper to get all disabled dates
           const disabled = [];
@@ -84,6 +88,7 @@ const Checkout = ({ user }) => {
         }
       }
       setBookedDatesMap(newMap);
+      console.log('Booked dates map:', newMap);
     }
     fetchAllBookedDates();
   }, [cartItems]);
@@ -178,6 +183,7 @@ const Checkout = ({ user }) => {
         await addDoc(collection(db, 'rentals'), {
           cameraId: item.id,
           cameraName: item.name,
+          dailyPrice: item.price, // Store the daily price
           userId: user.uid,
           userEmail: user.email,
           rentStartDate: startDate, // Store as Date object
@@ -212,7 +218,7 @@ const Checkout = ({ user }) => {
       <CircularProgress />
     </Box>
   ) : (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
       <Box sx={{ maxWidth: 600, mx: 'auto', mt: 6, mb: 6 }}>
         <Paper sx={{ p: 4, borderRadius: 2, boxShadow: 3 }}>
           <Typography variant="h4" fontWeight={800} gutterBottom>
@@ -275,6 +281,18 @@ const Checkout = ({ user }) => {
                         }}
                         minDate={dayjs()}
                         maxDate={item.rentEndDate ? dayjs(item.rentEndDate) : null}
+                        shouldDisableDate={(date) => {
+                          // Disable dates that are already booked
+                          const dateStr = date.format('YYYY-MM-DD');
+                          const isDisabled = bookedDatesMap[item.id]?.some(bookedDate => {
+                            const bookedDateStr = dayjs(bookedDate).format('YYYY-MM-DD');
+                            return bookedDateStr === dateStr;
+                          });
+                          if (isDisabled) {
+                            console.log(`Date ${dateStr} is disabled for item ${item.id}`);
+                          }
+                          return isDisabled;
+                        }}
                         slotProps={{
                           textField: {
                             fullWidth: true,
@@ -290,6 +308,18 @@ const Checkout = ({ user }) => {
                           updateCartItemDates(item.id, item.type, item.rentStartDate, endDate);
                         }}
                         minDate={item.rentStartDate ? dayjs(item.rentStartDate) : dayjs()}
+                        shouldDisableDate={(date) => {
+                          // Disable dates that are already booked
+                          const dateStr = date.format('YYYY-MM-DD');
+                          const isDisabled = bookedDatesMap[item.id]?.some(bookedDate => {
+                            const bookedDateStr = dayjs(bookedDate).format('YYYY-MM-DD');
+                            return bookedDateStr === dateStr;
+                          });
+                          if (isDisabled) {
+                            console.log(`Date ${dateStr} is disabled for item ${item.id}`);
+                          }
+                          return isDisabled;
+                        }}
                         slotProps={{
                           textField: {
                             fullWidth: true,
@@ -300,6 +330,9 @@ const Checkout = ({ user }) => {
                     </Box>
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                       💡 Select your start date first, then your end date
+                    </Typography>
+                    <Typography variant="caption" color="warning.main" sx={{ mt: 0.5, display: 'block' }}>
+                      ⚠️ Grayed out dates are already booked and unavailable
                     </Typography>
                   </Box>
                 )}

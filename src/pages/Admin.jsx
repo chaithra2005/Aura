@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, getDoc, doc, updateDoc } from 'firebase/firestore';
 import {
   Box,
   Paper,
@@ -20,7 +20,8 @@ import {
   Divider,
   IconButton,
   Tooltip,
-  Badge
+  Badge,
+  Button
 } from '@mui/material';
 import {
   LocationOn,
@@ -48,10 +49,58 @@ const Admin = ({ user }) => {
   const [stats, setStats] = useState({
     totalOrders: 0,
     pendingOrders: 0,
+    deliveredOrders: 0,
     totalRevenue: 0,
     codOrders: 0,
     upiOrders: 0
   });
+  const [updatingStatus, setUpdatingStatus] = useState({});
+
+  const handleDeliveryConfirmation = async (rentalId) => {
+    setUpdatingStatus(prev => ({ ...prev, [rentalId]: true }));
+    try {
+      await updateDoc(doc(db, 'rentals', rentalId), {
+        status: 'delivered',
+        deliveredAt: new Date()
+      });
+      
+      // Update the local state
+      setRentals(prevRentals => 
+        prevRentals.map(rental => 
+          rental.id === rentalId 
+            ? { ...rental, status: 'delivered', deliveredAt: new Date() }
+            : rental
+        )
+      );
+      
+      // Recalculate stats
+      const updatedRentals = rentals.map(rental => 
+        rental.id === rentalId 
+          ? { ...rental, status: 'delivered' }
+          : rental
+      );
+      
+      const totalOrders = updatedRentals.length;
+      const pendingOrders = updatedRentals.filter(rental => rental.status === 'pending').length;
+      const deliveredOrders = updatedRentals.filter(rental => rental.status === 'delivered').length;
+      const codOrders = updatedRentals.filter(rental => rental.paymentMethod === 'cod').length;
+      const upiOrders = updatedRentals.filter(rental => rental.paymentMethod === 'upi').length;
+      
+      setStats(prev => ({
+        ...prev,
+        totalOrders,
+        pendingOrders,
+        deliveredOrders,
+        codOrders,
+        upiOrders
+      }));
+      
+    } catch (error) {
+      console.error('Error updating delivery status:', error);
+    } finally {
+      setUpdatingStatus(prev => ({ ...prev, [rentalId]: false }));
+    }
+  };
 
   useEffect(() => {
     const fetchRentals = async () => {
@@ -69,22 +118,44 @@ const Admin = ({ user }) => {
         // Calculate statistics
         const totalOrders = rentalData.length;
         const pendingOrders = rentalData.filter(rental => rental.status === 'pending').length;
+        const deliveredOrders = rentalData.filter(rental => rental.status === 'delivered').length;
         const codOrders = rentalData.filter(rental => rental.paymentMethod === 'cod').length;
         const upiOrders = rentalData.filter(rental => rental.paymentMethod === 'upi').length;
         
-        // Calculate total revenue (assuming each rental has a price)
-        const totalRevenue = rentalData.reduce((sum, rental) => {
+        // Calculate total revenue with accurate pricing
+        let totalRevenue = 0;
+        for (const rental of rentalData) {
           const startDate = rental.rentStartDate?.toDate ? rental.rentStartDate.toDate() : new Date(rental.rentStartDate);
           const endDate = rental.rentEndDate?.toDate ? rental.rentEndDate.toDate() : new Date(rental.rentEndDate);
           const rentDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-          // Assuming a base price of 500 per day if not available
-          const dailyPrice = rental.dailyPrice || 500;
-          return sum + (dailyPrice * rentDays);
-        }, 0);
+          
+          let dailyPrice = rental.dailyPrice;
+          
+          // If dailyPrice is not available, fetch it from the camera document
+          if (!dailyPrice && rental.cameraId) {
+            try {
+              const cameraDoc = await getDoc(doc(db, 'cameras', rental.cameraId));
+              if (cameraDoc.exists()) {
+                dailyPrice = cameraDoc.data().price;
+              }
+            } catch (err) {
+              console.error('Error fetching camera price:', err);
+            }
+          }
+          
+          // Use a reasonable fallback if still no price found
+          if (!dailyPrice) {
+            dailyPrice = 500; // Fallback price
+            console.warn(`No price found for rental ${rental.id}, using fallback price of ₹500`);
+          }
+          
+          totalRevenue += dailyPrice * rentDays;
+        }
         
         setStats({
           totalOrders,
           pendingOrders,
+          deliveredOrders,
           totalRevenue,
           codOrders,
           upiOrders
@@ -139,93 +210,109 @@ const Admin = ({ user }) => {
       </Typography>
 
       {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ bgcolor: '#e3f2fd', border: '1px solid #2196f3' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography color="textSecondary" gutterBottom variant="body2">
-                    Total Orders
-                  </Typography>
-                  <Typography variant="h4" fontWeight={700} color="primary">
-                    {stats.totalOrders}
-                  </Typography>
-                </Box>
-                <Receipt sx={{ fontSize: 40, color: '#2196f3' }} />
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',           // 1 column on mobile
+            sm: '1fr 1fr',       // 2 columns on tablet
+            md: '1fr 1fr 1fr'    // 3 columns on desktop and up
+          },
+          gap: 3,                // spacing between cards
+          mb: 4
+        }}
+      >
+        <Card sx={{ bgcolor: '#e3f2fd', border: '1px solid #2196f3' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography color="textSecondary" gutterBottom variant="body2">
+                  Total Orders
+                </Typography>
+                <Typography variant="h4" fontWeight={700} color="primary">
+                  {stats.totalOrders}
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ bgcolor: '#fff3e0', border: '1px solid #ff9800' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography color="textSecondary" gutterBottom variant="body2">
-                    Pending Orders
-                  </Typography>
-                  <Typography variant="h4" fontWeight={700} color="warning.main">
-                    {stats.pendingOrders}
-                  </Typography>
-                </Box>
-                <AccessTime sx={{ fontSize: 40, color: '#ff9800' }} />
+              <Receipt sx={{ fontSize: 40, color: '#2196f3' }} />
+            </Box>
+          </CardContent>
+        </Card>
+        <Card sx={{ bgcolor: '#fff3e0', border: '1px solid #ff9800' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography color="textSecondary" gutterBottom variant="body2">
+                  Pending Orders
+                </Typography>
+                <Typography variant="h4" fontWeight={700} color="warning.main">
+                  {stats.pendingOrders}
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ bgcolor: '#e8f5e8', border: '1px solid #4caf50' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography color="textSecondary" gutterBottom variant="body2">
-                    Total Revenue
-                  </Typography>
-                  <Typography variant="h4" fontWeight={700} color="success.main">
-                    ₹{stats.totalRevenue.toLocaleString()}
-                  </Typography>
-                </Box>
-                <Payment sx={{ fontSize: 40, color: '#4caf50' }} />
+              <AccessTime sx={{ fontSize: 40, color: '#ff9800' }} />
+            </Box>
+          </CardContent>
+        </Card>
+        <Card sx={{ bgcolor: '#e8f5e8', border: '1px solid #4caf50' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography color="textSecondary" gutterBottom variant="body2">
+                  Total Revenue
+                </Typography>
+                <Typography variant="h4" fontWeight={700} color="success.main">
+                  ₹{stats.totalRevenue.toLocaleString()}
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ bgcolor: '#f3e5f5', border: '1px solid #9c27b0' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography color="textSecondary" gutterBottom variant="body2">
-                    COD Orders
-                  </Typography>
-                  <Typography variant="h4" fontWeight={700} color="secondary.main">
-                    {stats.codOrders}
-                  </Typography>
-                </Box>
-                <Payment sx={{ fontSize: 40, color: '#9c27b0' }} />
+              <Payment sx={{ fontSize: 40, color: '#4caf50' }} />
+            </Box>
+          </CardContent>
+        </Card>
+        <Card sx={{ bgcolor: '#f3e5f5', border: '1px solid #9c27b0' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography color="textSecondary" gutterBottom variant="body2">
+                  COD Orders
+                </Typography>
+                <Typography variant="h4" fontWeight={700} color="secondary.main">
+                  {stats.codOrders}
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ bgcolor: '#e0f2f1', border: '1px solid #009688' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography color="textSecondary" gutterBottom variant="body2">
-                    UPI Orders
-                  </Typography>
-                  <Typography variant="h4" fontWeight={700} color="info.main">
-                    {stats.upiOrders}
-                  </Typography>
-                </Box>
-                <Payment sx={{ fontSize: 40, color: '#009688' }} />
+              <Payment sx={{ fontSize: 40, color: '#9c27b0' }} />
+            </Box>
+          </CardContent>
+        </Card>
+        <Card sx={{ bgcolor: '#e8f5e8', border: '1px solid #4caf50' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography color="textSecondary" gutterBottom variant="body2">
+                  Delivered Orders
+                </Typography>
+                <Typography variant="h4" fontWeight={700} color="success.main">
+                  {stats.deliveredOrders}
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+              <CameraAlt sx={{ fontSize: 40, color: '#4caf50' }} />
+            </Box>
+          </CardContent>
+        </Card>
+        <Card sx={{ bgcolor: '#e0f2f1', border: '1px solid #009688' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography color="textSecondary" gutterBottom variant="body2">
+                  UPI Orders
+                </Typography>
+                <Typography variant="h4" fontWeight={700} color="info.main">
+                  {stats.upiOrders}
+                </Typography>
+              </Box>
+              <Payment sx={{ fontSize: 40, color: '#009688' }} />
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
 
       {/* Detailed Orders Table */}
       <Paper sx={{ borderRadius: 2, boxShadow: 3, overflow: 'hidden' }}>
@@ -352,11 +439,40 @@ const Admin = ({ user }) => {
                     
                     {/* Status Column */}
                     <TableCell>
-                      <Chip
-                        label={rental.status === 'pending' ? 'Pending' : 'Completed'}
-                        color={rental.status === 'pending' ? 'warning' : 'success'}
-                        size="small"
-                      />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Chip
+                          label={rental.status === 'pending' ? 'Pending' : rental.status === 'delivered' ? 'Delivered' : 'Completed'}
+                          color={rental.status === 'pending' ? 'warning' : rental.status === 'delivered' ? 'success' : 'info'}
+                          size="small"
+                        />
+                        {rental.status === 'pending' && (
+                          <Button
+                            variant="contained"
+                            size="small"
+                            color="success"
+                            disabled={updatingStatus[rental.id]}
+                            onClick={() => handleDeliveryConfirmation(rental.id)}
+                            sx={{ 
+                              fontSize: '0.7rem', 
+                              py: 0.5, 
+                              px: 1,
+                              minWidth: 'auto',
+                              textTransform: 'none'
+                            }}
+                          >
+                            {updatingStatus[rental.id] ? (
+                              <CircularProgress size={12} color="inherit" />
+                            ) : (
+                              'Confirm Delivery'
+                            )}
+                          </Button>
+                        )}
+                        {rental.status === 'delivered' && rental.deliveredAt && (
+                          <Typography variant="caption" color="textSecondary">
+                            Delivered: {new Date(rental.deliveredAt).toLocaleDateString()}
+                          </Typography>
+                        )}
+                      </Box>
                     </TableCell>
                   </TableRow>
                 );

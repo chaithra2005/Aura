@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Avatar, Paper, Button, TextField, CircularProgress, Divider, Grid } from '@mui/material';
+import { Box, Typography, Avatar, Paper, Button, TextField, CircularProgress, Divider, Grid, Chip } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
@@ -217,7 +217,19 @@ const Profile = ({ user }) => {
                       <Box sx={{ mt: 2 }}>
                         <Typography variant="body2">Rental Days: {rental.rentDays}</Typography>
                         <Typography variant="body2">Start Date: {rental.rentStartDate?.toDate ? rental.rentStartDate.toDate().toLocaleDateString() : rental.rentStartDate}</Typography>
-                        <Typography variant="body2">Status: {rental.status}</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                          <Typography variant="body2">Status:</Typography>
+                          <Chip
+                            label={rental.status === 'pending' ? 'Pending' : rental.status === 'delivered' ? 'Delivered' : 'Completed'}
+                            color={rental.status === 'pending' ? 'warning' : rental.status === 'delivered' ? 'success' : 'info'}
+                            size="small"
+                          />
+                        </Box>
+                        {rental.status === 'delivered' && rental.deliveredAt && (
+                          <Typography variant="body2" color="textSecondary">
+                            Delivered on: {new Date(rental.deliveredAt).toLocaleDateString()}
+                          </Typography>
+                        )}
                         <Typography variant="body2">Payment: {rental.paymentMethod}</Typography>
                         <Typography variant="body2">Address: {rental.address}</Typography>
                       </Box>
